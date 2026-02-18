@@ -1,0 +1,552 @@
+// =============================================================================
+// 🔧 API CONFIGURATION - USER APP
+// =============================================================================
+// Change this to your server's IP address when running on a physical device
+// For Android Emulator, use: 10.0.2.2
+// For iOS Simulator, use: localhost
+// For physical device, use your computer's local IP (e.g., 192.168.1.X)
+// =============================================================================
+
+import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Development Configuration
+const DEV_CONFIG = {
+    // For Web & iOS Simulator
+    WEB_URL: 'http://localhost:5000',
+    // For Android Emulator
+    ANDROID_EMULATOR_URL: 'http://10.0.2.2:5000',
+    // For Physical Device - Replace with your computer's IP
+    PHYSICAL_DEVICE_URL: 'http://192.168.1.13:5000',
+};
+
+// Production Configuration (when deployed)
+const PROD_CONFIG = {
+    URL: 'https://health-hub-main.onrender.com',
+};
+
+// =============================================================================
+// 🌐 DETERMINE THE CORRECT BASE URL
+// =============================================================================
+const getBaseUrl = (): string => {
+    // TEMPORARY: Use production URL for all devices while testing
+    // This connects to your deployed Render backend
+    return PROD_CONFIG.URL;
+
+    /* ORIGINAL CODE - Uncomment when running backend locally:
+    // Check if we're in production
+    if (__DEV__ === false) {
+        return PROD_CONFIG.URL;
+    }
+
+    // For development, detect platform
+    if (Platform.OS === 'web') {
+        return DEV_CONFIG.WEB_URL;
+    }
+
+    if (Platform.OS === 'android') {
+        // Use Android Emulator URL for emulator, or physical device URL
+        // Change this based on your testing environment
+        return DEV_CONFIG.ANDROID_EMULATOR_URL;
+    }
+
+    // iOS Simulator
+    if (Platform.OS === 'ios') {
+        return DEV_CONFIG.WEB_URL; // localhost works for iOS simulator
+    }
+
+    // Default to physical device URL
+    return DEV_CONFIG.PHYSICAL_DEVICE_URL;
+    */
+};
+
+// =============================================================================
+// 📡 API CONFIGURATION
+// =============================================================================
+export const API_BASE_URL = getBaseUrl();
+
+// =============================================================================
+// 🔐 AUTH TOKEN MANAGEMENT
+// =============================================================================
+let authToken: string | null = null;
+
+export const setAuthToken = (token: string | null): void => {
+    authToken = token;
+};
+
+export const getAuthToken = (): string | null => authToken;
+
+// =============================================================================
+// 🌐 FETCH WRAPPER
+// =============================================================================
+interface FetchOptions extends RequestInit {
+    authenticated?: boolean;
+}
+
+const fetchApi = async <T>(endpoint: string, options: FetchOptions = {}): Promise<T> => {
+    const { authenticated = true, ...fetchOptions } = options;
+
+    const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(fetchOptions.headers as Record<string, string> || {}),
+    };
+
+    if (authenticated) {
+        const token = await AsyncStorage.getItem('token');
+        if (token) {
+            headers['x-auth-token'] = token;
+        }
+    }
+
+    const url = `${API_BASE_URL}${endpoint}`;
+    console.log(`📤 API Request: ${fetchOptions.method || 'GET'} ${url}`);
+
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), 60000); // 60s timeout for Render cold starts
+
+    try {
+        const response = await fetch(url, {
+            ...fetchOptions,
+            headers,
+            signal: controller.signal,
+        });
+        clearTimeout(id);
+
+        console.log(`📥 API Response: ${response.status} ${url}`);
+
+        if (!response.ok) {
+            const text = await response.text();
+            let errorMessage = `HTTP error! status: ${response.status}`;
+
+            try {
+                const errorData = JSON.parse(text);
+                errorMessage = errorData.msg || errorMessage;
+            } catch (e) {
+                // If response is not JSON, use the text body or default message
+                if (text && text.length < 100) errorMessage = text;
+            }
+
+            throw new Error(errorMessage);
+        }
+
+        // Handle empty responses
+        const text = await response.text();
+        if (!text) return {} as T;
+
+        return JSON.parse(text) as T;
+    } catch (error) {
+        console.error('❌ API Error:', error);
+        throw error;
+    }
+};
+
+// =============================================================================
+// 🏥 API TYPES
+// =============================================================================
+interface LoginCredentials {
+    email: string;
+    password: string;
+}
+
+interface SignupData {
+    name?: string;
+    email: string;
+    password: string;
+    hospitalName?: string;
+}
+
+interface AuthResponse {
+    token: string;
+    role: string;
+    user: {
+        id: string;
+        name: string;
+        email: string;
+        role: string;
+        hospitalName?: string;
+    };
+}
+
+interface BedBookingData {
+    bookingType: 'bed' | 'ambulance';
+    itemId: string;
+    hospital: string;
+    patientName: string;
+    contactNumber: string;
+}
+
+interface AmbulanceBookingData {
+    pickupLat: number;
+    pickupLon: number;
+    hospitalId: string;
+}
+
+interface Hospital {
+    _id: string;
+    name: string;
+    photo?: string;
+    bio?: string;
+    rating?: number;
+    address?: string;
+    latitude?: number;
+    longitude?: number;
+}
+
+interface Ambulance {
+    _id: string;
+    ambulanceNumber: string;
+    isAvailable: boolean;
+    hospital: string;
+    status?: string;
+    currentLocation?: {
+        type: string;
+        coordinates: number[];
+    };
+}
+
+interface Bed {
+    _id: string;
+    bedNumber: string;
+    isAvailable: boolean;
+    hospital: string;
+}
+
+interface HospitalDetails {
+    hospital: Hospital;
+    beds: Bed[];
+    ambulances: Ambulance[];
+}
+
+interface AmbulanceStatus {
+    _id: string;
+    currentLocation: { type: string; coordinates: number[] };
+    status: string;
+}
+
+// =============================================================================
+// 🏥 API METHODS
+// =============================================================================
+export const api = {
+    // ==========================================================================
+    // 🔐 AUTHENTICATION
+    // ==========================================================================
+
+    /**
+     * Login user and get JWT token
+     */
+    login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
+        const data = await fetchApi<AuthResponse>('/api/auth/login', {
+            method: 'POST',
+            body: JSON.stringify(credentials),
+            authenticated: false,
+        });
+        if (data.token) {
+            setAuthToken(data.token);
+        }
+        return data;
+    },
+
+    /**
+     * Register new user
+     */
+    signup: async (userData: SignupData): Promise<AuthResponse> => {
+        const data = await fetchApi<AuthResponse>('/api/auth/signup', {
+            method: 'POST',
+            body: JSON.stringify(userData),
+            authenticated: false,
+        });
+        if (data.token) {
+            setAuthToken(data.token);
+        }
+        return data;
+    },
+
+    /**
+     * Request a password reset OTP
+     */
+    forgotPassword: async (email: string): Promise<{ msg: string; otp?: string }> => {
+        return fetchApi('/api/auth/forgot-password', {
+            method: 'POST',
+            body: JSON.stringify({ email }),
+            authenticated: false,
+        });
+    },
+
+    /**
+     * Verify the OTP sent to email
+     */
+    verifyOTP: async (email: string, otp: string): Promise<{ msg: string }> => {
+        return fetchApi('/api/auth/verify-otp', {
+            method: 'POST',
+            body: JSON.stringify({ email, otp }),
+            authenticated: false,
+        });
+    },
+
+    /**
+     * Reset password using OTP
+     */
+    resetPassword: async (data: { email: string; otp: string; newPassword: string }): Promise<{ msg: string }> => {
+        return fetchApi('/api/auth/reset-password', {
+            method: 'POST',
+            body: JSON.stringify(data),
+            authenticated: false,
+        });
+    },
+
+    /**
+     * Logout - clear token
+     */
+    logout: (): void => {
+        setAuthToken(null);
+    },
+
+    // ==========================================================================
+    // 🏥 HOSPITALS
+    // ==========================================================================
+
+    /**
+     * Get all hospitals
+     */
+    getHospitals: async (): Promise<Hospital[]> => {
+        return fetchApi<Hospital[]>('/api/hospitals', { authenticated: false });
+    },
+
+    /**
+     * Get single hospital with beds and ambulances
+     */
+    getHospitalDetails: async (hospitalId: string): Promise<HospitalDetails> => {
+        return fetchApi<HospitalDetails>(`/api/hospitals/${hospitalId}`, { authenticated: false });
+    },
+
+    // ==========================================================================
+    // 🛏️ BEDS
+    // ==========================================================================
+
+    /**
+     * Get all beds
+     */
+    getBeds: async (): Promise<Bed[]> => {
+        return fetchApi<Bed[]>('/api/beds', { authenticated: false });
+    },
+
+    /**
+     * Book a bed
+     */
+    bookBed: async (bookingData: BedBookingData): Promise<unknown> => {
+        return fetchApi('/api/bookings', {
+            method: 'POST',
+            body: JSON.stringify(bookingData),
+        });
+    },
+
+    /**
+     * Update bed status (Admin)
+     */
+    updateBedStatus: async (bedId: string, isAvailable: boolean): Promise<Bed> => {
+        return fetchApi<Bed>(`/api/beds/${bedId}/status`, {
+            method: 'PUT',
+            body: JSON.stringify({ isAvailable }),
+        });
+    },
+
+    // ==========================================================================
+    // 🚑 AMBULANCES
+    // ==========================================================================
+
+    /**
+     * Get all ambulances
+     */
+    getAmbulances: async (hospitalId?: string, isAvailable?: boolean): Promise<Ambulance[]> => {
+        let url = '/api/ambulances';
+        const params: string[] = [];
+        if (hospitalId) params.push(`hospital=${hospitalId}`);
+        if (isAvailable !== undefined) params.push(`isAvailable=${isAvailable}`);
+
+        if (params.length > 0) {
+            url += `?${params.join('&')}`;
+        }
+
+        return fetchApi<Ambulance[]>(url, { authenticated: false });
+    },
+
+    /**
+     * Book an ambulance
+     */
+    bookAmbulance: async (bookingData: AmbulanceBookingData & { ambulanceId?: string }): Promise<Ambulance> => {
+        return fetchApi<Ambulance>('/api/ambulance/book', {
+            method: 'POST',
+            body: JSON.stringify(bookingData),
+        });
+    },
+
+    /**
+     * Get ambulance status (for tracking)
+     */
+    getAmbulanceStatus: async (ambulanceId: string): Promise<AmbulanceStatus> => {
+        return fetchApi<AmbulanceStatus>(`/api/ambulance/status/${ambulanceId}`);
+    },
+
+    /**
+     * Update ambulance status (Admin)
+     */
+    updateAmbulanceStatus: async (ambulanceId: string, isAvailable: boolean): Promise<Ambulance> => {
+        return fetchApi<Ambulance>(`/api/ambulances/${ambulanceId}/status`, {
+            method: 'PUT',
+            body: JSON.stringify({ isAvailable }),
+        });
+    },
+
+    // ==========================================================================
+    // 📋 BOOKINGS
+    // ==========================================================================
+
+    /**
+     * Chat with AI Bot
+     */
+    chatWithBot: async (message: string): Promise<{ reply: string }> => {
+        return fetchApi<{ reply: string }>('/api/chat', {
+            method: 'POST',
+            body: JSON.stringify({ message }),
+            authenticated: false
+        });
+    },
+
+    /**
+     * Get all bookings for current user
+     */
+    getMyBookings: async (): Promise<any[]> => {
+        return fetchApi<any[]>('/api/bookings/my');
+    },
+
+    /**
+     * Get all bookings (admin view)
+     */
+    getBookings: async (): Promise<unknown[]> => {
+        return fetchApi<unknown[]>('/api/bookings');
+    },
+
+    // ==========================================================================
+    // 🔧 ADMIN METHODS
+    // ==========================================================================
+
+    /**
+     * Get logged-in user's hospital
+     */
+    getMyHospital: async (): Promise<HospitalDetails> => {
+        return fetchApi<HospitalDetails>('/api/hospitals/me');
+    },
+
+    /**
+     * Register a new hospital
+     */
+    registerHospital: async (data: Partial<Hospital>): Promise<Hospital> => {
+        return fetchApi<Hospital>('/api/hospitals', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+
+    updateHospital: async (id: string, data: Partial<Hospital>): Promise<Hospital> => {
+        return fetchApi<Hospital>(`/api/hospitals/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
+
+    /**
+     * Add a new bed
+     */
+    addBed: async (data: { bedNumber: string; isAvailable: boolean; hospital: string }): Promise<Bed> => {
+        return fetchApi<Bed>('/api/beds', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+
+    /**
+     * Add a new ambulance
+     */
+    addAmbulance: async (data: { ambulanceNumber: string; isAvailable: boolean; hospital: string }): Promise<Ambulance> => {
+        return fetchApi<Ambulance>('/api/ambulances', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+
+    deleteBed: async (id: string): Promise<unknown> => {
+        return fetchApi(`/api/beds/${id}`, { method: 'DELETE' });
+    },
+
+    deleteAmbulance: async (id: string): Promise<unknown> => {
+        return fetchApi(`/api/ambulances/${id}`, { method: 'DELETE' });
+    },
+
+    // Get all bookings (admin view) - assuming there's an endpoint or filtering on GET /bookings
+    getAllBookings: async (): Promise<any[]> => {
+        return fetchApi<any[]>('/api/bookings');
+    },
+
+    deleteBooking: async (id: string): Promise<unknown> => {
+        return fetchApi(`/api/bookings/${id}`, { method: 'DELETE' });
+    },
+
+    // ==========================================================================
+    // 👤 PROFILE
+    // ==========================================================================
+
+    /**
+     * Upload an image
+     */
+    uploadImage: async (formData: FormData): Promise<{ url: string }> => {
+        const token = await AsyncStorage.getItem('token');
+        const headers: Record<string, string> = {
+            'Content-Type': 'multipart/form-data',
+        };
+        if (token) headers['x-auth-token'] = token;
+
+        const response = await fetch(`${API_BASE_URL}/api/upload`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                // Let request handling set boundary automatically?
+                // Actually for RN FormData, usually better to NOT set Content-Type manually
+                // or let the fetch wrapper handle it.
+                // But our fetch wrapper sets Content-Type: application/json.
+                // So we'll use fetch directly here to be safe and avoid the wrapper's JSON forcing.
+                'x-auth-token': token || '',
+            }
+        });
+
+        const json = await response.json();
+        if (!response.ok) throw new Error(json.msg || 'Upload failed');
+        return json;
+    },
+
+    /**
+     * Update user profile
+     */
+    updateProfile: async (data: {
+        name?: string;
+        email?: string;
+        profilePhoto?: string;
+        age?: string;
+        location?: string;
+        phone?: string;
+    }): Promise<AuthResponse['user']> => {
+        return fetchApi<AuthResponse['user']>('/api/auth/profile', {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
+
+    /**
+     * Get current user profile
+     */
+    getProfile: async (): Promise<AuthResponse['user']> => {
+        return fetchApi<AuthResponse['user']>('/api/auth/me'); // Assuming /api/auth/me exists, common convention. Or /api/auth/profile
+    },
+};
+
+// Export default
+export default api;

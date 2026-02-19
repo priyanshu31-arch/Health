@@ -2,7 +2,7 @@ import { Image } from 'expo-image';
 import { StyleSheet, View, TouchableOpacity, Dimensions } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { COLORS, SHADOWS } from '../constants/theme';
+import { COLORS, SHADOWS, FONTS } from '../constants/theme';
 import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
@@ -77,7 +77,7 @@ export default function DoctorCard({ doctor, onPress }: DoctorCardProps) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.white,
-    borderRadius: 20,
+    borderRadius: 12,
     padding: 12,
     width: 160,
     ...SHADOWS.medium,
@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: 120,
-    borderRadius: 16,
+    borderRadius: 8,
     backgroundColor: COLORS.surface,
   },
   verifiedBadge: {
@@ -119,14 +119,14 @@ const styles = StyleSheet.create({
   ratingText: {
     color: COLORS.white,
     fontSize: 10,
-    fontWeight: 'bold',
+    fontFamily: FONTS.medium,
   },
   info: {
     alignItems: 'flex-start',
   },
   name: {
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: FONTS.semiBold,
     color: COLORS.text,
     marginBottom: 6,
   },
@@ -156,6 +156,6 @@ const styles = StyleSheet.create({
   availabilityText: {
     fontSize: 10,
     color: COLORS.success,
-    fontWeight: '600',
+    fontFamily: FONTS.medium,
   },
 });

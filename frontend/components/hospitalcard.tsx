@@ -2,7 +2,7 @@ import { Image } from 'expo-image';
 import { StyleSheet, View, TouchableOpacity, Dimensions } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { COLORS, SHADOWS } from '../constants/theme';
+import { COLORS, SHADOWS, FONTS } from '../constants/theme';
 import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
@@ -89,7 +89,7 @@ export default function HospitalCard({ hospital, onPress }: HospitalCardProps) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.white,
-    borderRadius: 24,
+    borderRadius: 12,
     width: 280,
     ...SHADOWS.medium,
     marginVertical: 4,
@@ -111,13 +111,13 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 8,
     gap: 4,
     ...SHADOWS.small,
   },
   certifiedText: {
     fontSize: 10,
-    fontWeight: '700',
+    fontFamily: FONTS.semiBold,
     color: COLORS.primary,
   },
   emergencyBadge: {
@@ -129,12 +129,12 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.error,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 8,
     gap: 3,
   },
   emergencyText: {
     fontSize: 10,
-    fontWeight: '700',
+    fontFamily: FONTS.semiBold,
     color: '#fff',
   },
   info: {
@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
   },
   name: {
     fontSize: 17,
-    fontWeight: '700',
+    fontFamily: FONTS.semiBold,
     color: COLORS.text,
     flex: 1,
     marginRight: 8,
@@ -159,12 +159,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFBEB',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 8,
+    borderRadius: 6,
     gap: 4,
   },
   ratingText: {
     fontSize: 12,
-    fontWeight: '700',
+    fontFamily: FONTS.semiBold,
     color: '#B45309',
   },
   locationRow: {
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primaryLight,
     paddingVertical: 10,
     paddingHorizontal: 12,
-    borderRadius: 12,
+    borderRadius: 8,
     marginBottom: 12,
   },
   statItem: {
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
   },
   statText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontFamily: FONTS.medium,
     color: COLORS.primary,
   },
   statDivider: {

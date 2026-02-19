@@ -1,33 +1,42 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
-// Fix for default marker icons in Leaflet/Webpack
-const iconUrl = 'https://unpkg.com/leaflet@1.9.3/dist/images/marker-icon.png';
-const iconRetinaUrl = 'https://unpkg.com/leaflet@1.9.3/dist/images/marker-icon-2x.png';
-const shadowUrl = 'https://unpkg.com/leaflet@1.9.3/dist/images/marker-shadow.png';
-
-const DefaultIcon = L.icon({
-    iconUrl,
-    iconRetinaUrl,
-    shadowUrl,
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41]
+// Custom Marker Icons
+const ambulanceIcon = L.icon({
+    iconUrl: 'https://cdn-icons-png.flaticon.com/512/1032/1032989.png', // Or another ambulance icon
+    iconSize: [35, 35],
+    iconAnchor: [17, 17],
+    popupAnchor: [0, -17],
 });
 
-L.Marker.prototype.options.icon = DefaultIcon;
+const pickupIcon = L.icon({
+    iconUrl: 'https://cdn-icons-png.flaticon.com/512/3177/3177361.png', // Location pin icon
+    iconSize: [30, 30],
+    iconAnchor: [15, 30],
+    popupAnchor: [0, -30],
+});
 
-// Component to center map when position changes
+const hospitalIcon = L.icon({
+    iconUrl: 'https://cdn-icons-png.flaticon.com/512/4332/4332912.png', // Hospital icon
+    iconSize: [30, 30],
+    iconAnchor: [15, 30],
+    popupAnchor: [0, -30],
+});
+
+// Component to smoothly pan the map
 function RecenterMap({ lat, lon }: { lat: number; lon: number }) {
     const map = useMap();
     useEffect(() => {
+<<<<<<< HEAD
         map.flyTo([lat, lon], map.getZoom(), {
             animate: true,
             duration: 1.5 // Smooth flight
         });
+=======
+        map.panTo([lat, lon], { animate: true, duration: 1.5 });
+>>>>>>> 110bde4635d92b6879d87d21a81d24140acb8f48
     }, [lat, lon, map]);
     return null;
 }
@@ -49,13 +58,32 @@ export default function LeafletMap({
     pickupLat, pickupLon, dropLat, dropLon, dropAddress
 }: MapProps) {
     const [routePositions, setRoutePositions] = useState<[number, number][]>([]);
+    const lastFetchPos = useRef<{ lat: number; lon: number } | null>(null);
+
+    // Function to calculate distance (simple approximation)
+    const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+        const R = 6371e3; // metres
+        const φ1 = lat1 * Math.PI / 180;
+        const φ2 = lat2 * Math.PI / 180;
+        const Δφ = (lat2 - lat1) * Math.PI / 180;
+        const Δλ = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    };
 
     useEffect(() => {
-        // Simple routing: Ambulance -> Pickup -> Drop
-        const fetchRoute = async () => {
-            if (!pickupLat || !pickupLon) return;
+        if (!pickupLat || !pickupLon) return;
 
-            // Coordinates in OSRM are lon,lat
+        // Only fetch route if we haven't fetched yet OR if we've moved significantly (> 100m)
+        if (lastFetchPos.current) {
+            const dist = getDistance(lat, lon, lastFetchPos.current.lat, lastFetchPos.current.lon);
+            if (dist < 100) return; // Skip if moved less than 100 meters
+        }
+
+        const fetchRoute = async () => {
             const start = `${lon},${lat}`;
             const pickup = `${pickupLon},${pickupLat}`;
             let waypoints = `${start};${pickup}`;
@@ -71,9 +99,9 @@ export default function LeafletMap({
 
                 if (data.routes && data.routes.length > 0) {
                     const coords = data.routes[0].geometry.coordinates;
-                    // GeoJSON is [lon, lat], Leaflet needs [lat, lon]
                     const positions = coords.map((c: number[]) => [c[1], c[0]] as [number, number]);
                     setRoutePositions(positions);
+                    lastFetchPos.current = { lat, lon };
                 }
             } catch (error) {
                 console.error("Error fetching route:", error);
@@ -86,15 +114,17 @@ export default function LeafletMap({
     return (
         <MapContainer
             center={[lat, lon]}
-            zoom={13}
+            zoom={15} // Slightly closer zoom for tracking
             style={{ width: '100%', height: '100%' }}
+            zoomControl={false}
         >
             <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                attribution='&copy; OpenStreetMap'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
+
             {/* Ambulance Marker */}
-            <Marker position={[lat, lon]}>
+            <Marker position={[lat, lon]} icon={ambulanceIcon}>
                 <Popup>
                     <b>Ambulance {vehicleNumber || ''}</b> <br />
                     {status}
@@ -103,27 +133,27 @@ export default function LeafletMap({
 
             {/* Pickup Marker */}
             {pickupLat && pickupLon && (
-                <Marker position={[pickupLat, pickupLon]} opacity={0.7}>
+                <Marker position={[pickupLat, pickupLon]} icon={pickupIcon}>
                     <Popup>
-                        <b>Pickup Location</b> <br />
-                        Patient Waiting Here
+                        <b>Pickup Point</b> <br />
+                        Patient Location
                     </Popup>
                 </Marker>
             )}
 
             {/* Drop Marker */}
             {dropLat && dropLon && (
-                <Marker position={[dropLat, dropLon]} opacity={0.7}>
+                <Marker position={[dropLat, dropLon]} icon={hospitalIcon}>
                     <Popup>
-                        <b>Drop Location</b> <br />
-                        {dropAddress || 'Hospital'}
+                        <b>Hospital</b> <br />
+                        {dropAddress || 'Destination'}
                     </Popup>
                 </Marker>
             )}
 
             {/* Route Line */}
             {routePositions.length > 0 && (
-                <Polyline positions={routePositions} pathOptions={{ color: 'blue' }} />
+                <Polyline positions={routePositions} pathOptions={{ color: '#3B82F6', weight: 4, opacity: 0.6, dashArray: '10, 10' }} />
             )}
 
             <RecenterMap lat={lat} lon={lon} />

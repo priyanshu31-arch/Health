@@ -1,3 +1,10 @@
+export const FONTS = {
+  regular: 'Poppins_300Light',
+  medium: 'Poppins_400Regular',
+  semiBold: 'Poppins_500Medium',
+  bold: 'Poppins_600SemiBold',
+};
+
 export const COLORS = {
   primary: '#0891B2', // Medical Teal/Cyan
   primaryLight: '#CFFAFE',

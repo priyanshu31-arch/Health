@@ -4,9 +4,10 @@ import { StyleSheet, View, TouchableOpacity, Image, Dimensions } from 'react-nat
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
-import { COLORS, SHADOWS } from '../../constants/theme';
+import { COLORS, SHADOWS, FONTS } from '../../constants/theme';
 import Animated, { FadeInDown, FadeInUp, withSpring, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
+import { ThemedButton } from '@/components/ui/ThemedButton';
 
 const { width } = Dimensions.get('window');
 
@@ -38,21 +39,16 @@ const AmbulanceTabScreen = () => {
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(600).duration(800)} style={{ width: '100%' }}>
-          <TouchableOpacity
-            style={[styles.button, animatedStyle]}
-            onPressIn={() => (scale.value = withSpring(0.95))}
-            onPressOut={() => (scale.value = withSpring(1))}
-            onPress={handlePress}
-            activeOpacity={0.8}
-          >
-            <LinearGradient
-              colors={[COLORS.primary, COLORS.accent]}
-              style={styles.gradient}
-            >
-              <MaterialCommunityIcons name="map-marker-radius" size={24} color="white" />
-              <ThemedText style={styles.buttonText}>Book an Ambulance</ThemedText>
-            </LinearGradient>
-          </TouchableOpacity>
+          <Animated.View style={animatedStyle}>
+            <ThemedButton
+              title="Book an Ambulance"
+              variant="gradient"
+              icon={<MaterialCommunityIcons name="map-marker-radius" size={24} color="white" />}
+              onPress={handlePress}
+              onPressIn={() => (scale.value = withSpring(0.95))}
+              onPressOut={() => (scale.value = withSpring(1))}
+            />
+          </Animated.View>
         </Animated.View>
 
         <Animated.View entering={FadeInUp.delay(800).duration(1000)} style={styles.infoCard}>
@@ -89,7 +85,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: '900',
+    fontFamily: FONTS.semiBold,
     color: COLORS.text,
     textAlign: 'center',
     marginBottom: 12,
@@ -101,6 +97,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     marginBottom: 40,
     paddingHorizontal: 20,
+    fontFamily: FONTS.regular,
   },
   button: {
     width: '100%',
@@ -111,12 +108,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 18,
-    borderRadius: 20,
+    borderRadius: 12,
     gap: 12,
   },
   buttonText: {
     fontSize: 18,
-    fontWeight: '800',
+    fontWeight: '500',
     color: COLORS.white,
   },
   infoCard: {
@@ -132,6 +129,6 @@ const styles = StyleSheet.create({
   infoText: {
     fontSize: 14,
     color: COLORS.text,
-    fontWeight: '600',
+    fontWeight: '500',
   },
 });

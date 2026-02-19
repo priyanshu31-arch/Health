@@ -20,6 +20,7 @@ import { useAuth } from '@/context/AuthContext';
 import { api, API_BASE_URL } from '@/app/config/api.config';
 import { COLORS, SHADOWS } from '@/constants/theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ThemedButton } from '@/components/ui/ThemedButton';
 
 export default function EditProfile() {
   const { user, updateUser } = useAuth();
@@ -282,13 +283,13 @@ export default function EditProfile() {
           />
         </View>
 
-        <TouchableOpacity
-          style={[styles.doneBtn, (isLoading || uploading) && styles.disabledBtn]}
+        <ThemedButton
+          title="Save Changes"
           onPress={handleSave}
+          isLoading={isLoading || uploading}
           disabled={isLoading || uploading}
-        >
-          {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.doneText}>Save Changes</Text>}
-        </TouchableOpacity>
+          style={{ width: '100%', marginBottom: 16 }}
+        />
 
         <View style={{ height: 40 }} />
       </ScrollView>

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '@/constants/theme';
+import { COLORS, FONTS } from '@/constants/theme';
 import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
 
 interface StatusModalProps {
@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 22,
-        fontWeight: '800',
+        fontFamily: FONTS.bold,
         color: '#000',
         marginBottom: 10,
         textAlign: 'center',
@@ -105,6 +105,7 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginBottom: 24,
         lineHeight: 22,
+        fontFamily: FONTS.regular,
     },
     button: {
         width: '100%',
@@ -116,6 +117,6 @@ const styles = StyleSheet.create({
     buttonText: {
         color: '#fff',
         fontSize: 16,
-        fontWeight: '700',
+        fontFamily: FONTS.bold,
     },
 });

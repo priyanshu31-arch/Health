@@ -1,1 +1,1 @@
-export const SOCKET_URL = 'http://localhost:5000';
+export const SOCKET_URL = 'https://health-hub-main.onrender.com';

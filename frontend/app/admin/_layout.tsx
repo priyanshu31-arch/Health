@@ -9,11 +9,11 @@ export default function AdminLayout() {
     }
 
     return (
-        <Stack>
-            <Stack.Screen name="index" options={{ title: 'Admin Dashboard', headerShown: false }} />
-            <Stack.Screen name="register-hospital" options={{ title: 'Register Hospital', headerBackTitle: 'Dashboard' }} />
-            <Stack.Screen name="manage-beds" options={{ title: 'Manage Beds', headerBackTitle: 'Dashboard' }} />
-            <Stack.Screen name="manage-ambulances" options={{ title: 'Manage Ambulances', headerBackTitle: 'Dashboard' }} />
+        <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="index" />
+            <Stack.Screen name="register-hospital" />
+            <Stack.Screen name="manage-beds" />
+            <Stack.Screen name="manage-ambulances" />
         </Stack>
     );
 }

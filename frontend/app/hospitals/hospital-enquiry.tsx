@@ -23,6 +23,7 @@ import { useNotifications } from '@/context/NotificationContext';
 import Shimmer from '@/components/Shimmer';
 import Animated, { FadeInDown, FadeInUp, ZoomIn } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
+import { ThemedButton } from '@/components/ui/ThemedButton';
 
 export default function HospitalEnquiryScreen() {
     const router = useRouter();
@@ -249,20 +250,13 @@ export default function HospitalEnquiryScreen() {
             </View>
 
             <View style={styles.footer}>
-                <TouchableOpacity
-                    style={[
-                        styles.bookButton,
-                        submitting && styles.disabledButton
-                    ]}
+                <ThemedButton
+                    title="Confirm Booking"
                     onPress={handleBooking}
+                    isLoading={submitting}
                     disabled={submitting}
-                >
-                    {submitting ? (
-                        <ActivityIndicator color={COLORS.white} />
-                    ) : (
-                        <ThemedText style={styles.bookButtonText}>Confirm Booking</ThemedText>
-                    )}
-                </TouchableOpacity>
+                    style={{ width: '100%' }}
+                />
             </View>
 
             {/* Success Modal */}
@@ -315,15 +309,15 @@ export default function HospitalEnquiryScreen() {
                                 Please arrive at the hospital within 2 hours to complete the admission process.
                             </ThemedText>
 
-                            <TouchableOpacity
-                                style={styles.homeButton}
+                            <ThemedButton
+                                title="Return to Home"
+                                variant="gradient"
                                 onPress={() => {
                                     setShowSuccessModal(false);
                                     router.replace('/(tabs)');
                                 }}
-                            >
-                                <ThemedText style={styles.homeButtonText}>Return to Home</ThemedText>
-                            </TouchableOpacity>
+                                style={{ width: '100%' }}
+                            />
                         </Animated.View>
                     </Animated.View>
                 </View>

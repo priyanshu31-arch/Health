@@ -180,6 +180,9 @@ interface AmbulanceBookingData {
     pickupLat: number;
     pickupLon: number;
     hospitalId: string;
+    patientName?: string;
+    contactNumber?: string;
+    pickupAddress?: string;
 }
 
 interface Hospital {

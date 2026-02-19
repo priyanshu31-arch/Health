@@ -1,9 +1,13 @@
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useEffect, useState, Suspense, lazy } from 'react';
 import io from 'socket.io-client';
+
 import { SOCKET_URL } from '../../config';
+import { COLORS, SHADOWS, FONTS } from '../../constants/theme';
+import { ThemedText } from '../themed-text';
+import { ThemedButton } from '../ui/ThemedButton';
 
 // Lazy load Leaflet Map to avoid SSR 'window is not defined' error
 const LeafletMap = lazy(() => import('./LeafletMap'));
@@ -16,7 +20,7 @@ export default function TrackingScreenWeb() {
     const router = useRouter();
 
     // State
-    const [status, setStatus] = useState('Connecting to Ambulance...');
+    const [status, setStatus] = useState('Connecting to ambulance...');
     const [remoteLocation, setRemoteLocation] = useState<any>(null);
     const [socket, setSocket] = useState<any>(null);
     const [connected, setConnected] = useState(false);
@@ -47,13 +51,12 @@ export default function TrackingScreenWeb() {
 
         newSocket.on('receive_location', (loc: any) => {
             console.log('Received Remote Location:', loc);
-            // Ensure numbers
             if (loc && loc.latitude && loc.longitude) {
                 setRemoteLocation({
                     latitude: parseFloat(loc.latitude),
                     longitude: parseFloat(loc.longitude)
                 });
-                setStatus('Ambulance is sharing live location');
+                setStatus('Tracking live location');
             }
         });
 
@@ -68,7 +71,6 @@ export default function TrackingScreenWeb() {
     }, [bookingId]);
 
     // Fallback location (Bangalore) if no signal yet
-    // Fallback location (Bangalore) if no signal yet
     const displayLat = remoteLocation?.latitude || 12.9716;
     const displayLon = remoteLocation?.longitude || 77.5946;
 
@@ -80,17 +82,27 @@ export default function TrackingScreenWeb() {
 
     return (
         <View style={styles.container}>
+            {/* Floating Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()}>
-                    <Ionicons name="arrow-back" size={24} color="black" />
+                <TouchableOpacity
+                    style={styles.backButton}
+                    onPress={() => router.back()}
+                >
+                    <Ionicons name="arrow-back" size={24} color={COLORS.text} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Live Tracking (Web)</Text>
+                <View style={styles.headerContent}>
+                    <ThemedText style={styles.headerTitle}>Live Tracking</ThemedText>
+                    <View style={styles.connectionStatus}>
+                        <View style={[styles.statusDot, { backgroundColor: connected ? '#22C55E' : '#EF4444' }]} />
+                        <ThemedText style={styles.connectionText}>{connected ? 'Connected' : 'Offline'}</ThemedText>
+                    </View>
+                </View>
             </View>
 
             <View style={styles.mapContainer}>
                 {/* Only render Map on Client */}
                 {isClient && (
-                    <Suspense fallback={<View style={styles.center}><ActivityIndicator size="large" color="#3B82F6" /></View>}>
+                    <Suspense fallback={<View style={styles.center}><ActivityIndicator size="large" color={COLORS.primary} /></View>}>
                         <LeafletMap
                             lat={displayLat}
                             lon={displayLon}
@@ -104,21 +116,38 @@ export default function TrackingScreenWeb() {
                         />
                     </Suspense>
                 )}
+            </View>
 
-                {/* Overlay Status Card */}
-                <View style={styles.overlayCard}>
-                    <View style={styles.statusRow}>
-                        <Ionicons
-                            name="radio-button-on"
-                            size={20}
-                            color={connected ? "#22C55E" : "#EF4444"}
-                        />
-                        <Text style={styles.statusText}>{status}</Text>
+            {/* Bottom Info Card */}
+            <View style={styles.footer}>
+                <View style={styles.dragHandle} />
+
+                <View style={styles.infoRow}>
+                    <View style={styles.infoBox}>
+                        <ThemedText style={styles.label}>Ambulance</ThemedText>
+                        <ThemedText style={styles.value}>{vehicleNumber || 'Finding...'}</ThemedText>
                     </View>
-                    {!remoteLocation && (
-                        <ActivityIndicator size="small" color="#3B82F6" style={{ marginTop: 8 }} />
-                    )}
+                    <View style={styles.divider} />
+                    <View style={styles.infoBox}>
+                        <ThemedText style={styles.label}>Patient</ThemedText>
+                        <ThemedText style={styles.value}>{patientName || 'Emergency'}</ThemedText>
+                    </View>
                 </View>
+
+                <View style={styles.statusIndicator}>
+                    {!remoteLocation && connected && <ActivityIndicator size="small" color={COLORS.primary} style={{ marginRight: 8 }} />}
+                    <ThemedText style={styles.statusText}>{status}</ThemedText>
+                </View>
+
+                {role === 'user' && (
+                    <ThemedButton
+                        title="Emergency Call"
+                        onPress={() => window.alert('Connecting to driver...')}
+                        variant="primary"
+                        style={styles.actionBtn}
+                        icon={<Ionicons name="call" size={18} color="white" style={{ marginRight: 8 }} />}
+                    />
+                )}
             </View>
         </View>
     );
@@ -127,21 +156,57 @@ export default function TrackingScreenWeb() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F8FAFC',
+        backgroundColor: COLORS.background,
     },
     header: {
+        position: 'absolute',
+        top: 20,
+        left: 20,
+        right: 20,
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 16,
-        backgroundColor: '#fff',
-        borderBottomWidth: 1,
-        borderBottomColor: '#eee',
-        gap: 16,
-        zIndex: 10
+        zIndex: 1000,
+    },
+    backButton: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: COLORS.white,
+        justifyContent: 'center',
+        alignItems: 'center',
+        ...SHADOWS.medium,
+    },
+    headerContent: {
+        flex: 1,
+        marginLeft: 12,
+        backgroundColor: COLORS.white,
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        borderRadius: 22,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        ...SHADOWS.medium,
     },
     headerTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
+        fontSize: 16,
+        fontFamily: FONTS.bold,
+        color: COLORS.text,
+    },
+    connectionStatus: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    statusDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        marginRight: 6,
+    },
+    connectionText: {
+        fontSize: 12,
+        fontFamily: FONTS.medium,
+        color: COLORS.textLight,
     },
     mapContainer: {
         flex: 1,
@@ -149,30 +214,68 @@ const styles = StyleSheet.create({
         width: '100%',
         height: '100%'
     },
-    overlayCard: {
+    footer: {
         position: 'absolute',
-        top: 20,
+        bottom: 20,
         left: 20,
         right: 20,
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        padding: 16,
-        borderRadius: 16,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 4,
-        zIndex: 1000 // Ensure above map
+        backgroundColor: COLORS.white,
+        padding: 24,
+        paddingTop: 12,
+        borderRadius: 24,
+        zIndex: 1000,
+        maxWidth: 500, // Limiting width on web for better look
+        alignSelf: 'center', // Centering on web
+        ...SHADOWS.medium,
     },
-    statusRow: {
+    dragHandle: {
+        width: 40,
+        height: 4,
+        backgroundColor: '#E2E8F0',
+        borderRadius: 2,
+        alignSelf: 'center',
+        marginBottom: 20,
+    },
+    infoRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8
+        marginBottom: 20,
+    },
+    infoBox: {
+        flex: 1,
+    },
+    label: {
+        fontSize: 12,
+        color: COLORS.textLight,
+        fontFamily: FONTS.medium,
+        marginBottom: 4,
+    },
+    value: {
+        fontSize: 16,
+        color: COLORS.text,
+        fontFamily: FONTS.bold,
+    },
+    divider: {
+        width: 1,
+        height: 30,
+        backgroundColor: '#E2E8F0',
+        marginHorizontal: 16,
+    },
+    statusIndicator: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.background,
+        padding: 12,
+        borderRadius: 12,
+        marginBottom: 20,
     },
     statusText: {
         fontSize: 14,
-        fontWeight: '600',
-        color: '#1E293B',
+        color: COLORS.text,
+        fontFamily: FONTS.medium,
+    },
+    actionBtn: {
+        width: '100%',
     },
     center: {
         flex: 1,

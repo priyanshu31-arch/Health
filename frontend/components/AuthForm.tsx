@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Switch, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Switch, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
+import { ThemedButton } from './ui/ThemedButton';
+import { COLORS, FONTS } from '@/constants/theme';
 
 interface AuthFormProps {
     type: 'login' | 'signup';
@@ -78,9 +80,6 @@ export default function AuthForm({ type, onSubmit, isLoading, onToggle }: AuthFo
                         value={name}
                         onChangeText={(text) => {
                             const lettersOnly = text.replace(/[^A-Za-z\s]/g, '');
-                            if (text !== lettersOnly) {
-                                // Optional: You could show a small toast or just ignore the number
-                            }
                             setName(lettersOnly);
                         }}
                         autoCapitalize="words"
@@ -92,10 +91,6 @@ export default function AuthForm({ type, onSubmit, isLoading, onToggle }: AuthFo
                             placeholder="Hospital Name"
                             value={hospitalName}
                             onChangeText={(text) => {
-                                // For hospital name, maybe numbers are allowed? 
-                                // But user said "no user can write miss information like number in name box"
-                                // Let's restrict it to letters, spaces, and maybe some basics if it's a hospital
-                                // Actually, let's keep it consistent with user's request: no numbers.
                                 const filtered = text.replace(/[0-9]/g, '');
                                 setHospitalName(filtered);
                             }}
@@ -138,17 +133,13 @@ export default function AuthForm({ type, onSubmit, isLoading, onToggle }: AuthFo
                 </TouchableOpacity>
             )}
 
-            <TouchableOpacity
-                style={[styles.button, isHospital && type === 'signup' ? styles.adminButton : null]}
+            <ThemedButton
+                title={type === 'login' ? 'Login' : (isHospital ? 'Register Hospital' : 'Sign Up')}
                 onPress={handleSubmit}
-                disabled={isLoading}
-            >
-                {isLoading ? (
-                    <ActivityIndicator color="#fff" />
-                ) : (
-                    <Text style={styles.buttonText}>{type === 'login' ? 'Login' : (isHospital ? 'Register Hospital' : 'Sign Up')}</Text>
-                )}
-            </TouchableOpacity>
+                isLoading={isLoading}
+                variant={isHospital && type === 'signup' ? 'danger' : 'primary'}
+                style={{ marginTop: 10 }}
+            />
 
             <TouchableOpacity onPress={onToggle} style={styles.toggleContainer}>
                 <Text style={styles.toggleText}>
@@ -166,7 +157,7 @@ const styles = StyleSheet.create({
         width: '100%',
         padding: 20,
         backgroundColor: '#fff',
-        borderRadius: 10,
+        borderRadius: 12, // Standardized
         elevation: 3,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
@@ -175,44 +166,30 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 24,
-        fontWeight: 'bold',
+        fontFamily: FONTS.semiBold,
         marginBottom: 20,
         textAlign: 'center',
         color: '#333',
     },
     input: {
-        height: 50,
+        height: 52, // Standardized
         borderColor: '#ddd',
         borderWidth: 1,
-        borderRadius: 8,
+        borderRadius: 12, // Standardized
         marginBottom: 15,
         paddingHorizontal: 15,
         fontSize: 16,
+        fontFamily: FONTS.regular,
         backgroundColor: '#f9f9f9',
-    },
-    button: {
-        height: 50,
-        backgroundColor: '#007AFF', // Standard Blue
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderRadius: 8,
-        marginTop: 10,
-    },
-    adminButton: {
-        backgroundColor: '#D32F2F', // Red for Admin
-    },
-    buttonText: {
-        color: '#fff',
-        fontSize: 18,
-        fontWeight: '600',
     },
     toggleContainer: {
         marginTop: 20,
         alignItems: 'center',
     },
     toggleText: {
-        color: '#007AFF',
+        color: COLORS.primary,
         fontSize: 14,
+        fontFamily: FONTS.medium,
     },
     switchContainer: {
         flexDirection: 'row',
@@ -223,6 +200,7 @@ const styles = StyleSheet.create({
     switchLabel: {
         fontSize: 16,
         color: '#333',
+        fontFamily: FONTS.medium,
     },
     forgotPasswordContainer: {
         alignSelf: 'flex-end',
@@ -230,8 +208,9 @@ const styles = StyleSheet.create({
         marginTop: -5,
     },
     forgotPasswordText: {
-        color: '#007AFF',
+        color: COLORS.primary,
         fontSize: 14,
-        fontWeight: '600',
+        fontFamily: FONTS.medium,
     },
 });
+

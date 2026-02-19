@@ -13,12 +13,13 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ThemedText } from '../../components/themed-text';
-import { COLORS, SHADOWS } from '../../constants/theme';
+import { COLORS, SHADOWS, FONTS } from '../../constants/theme';
 import { api } from '../config/api.config';
 import * as Location from 'expo-location';
 import StatusModal from '@/components/StatusModal';
 import { useNotifications } from '@/context/NotificationContext';
 import Shimmer from '@/components/Shimmer';
+import { ThemedButton } from '@/components/ui/ThemedButton';
 
 export default function AmbulancePickupScreen() {
     const router = useRouter();
@@ -49,8 +50,8 @@ export default function AmbulancePickupScreen() {
         setStatusModalVisible(true);
     };
 
-    // Get hospitalId from params
-    const { hospitalId } = useLocalSearchParams();
+    // Get hospitalId and optional ambulanceId from params
+    const { hospitalId, ambulanceId } = useLocalSearchParams();
 
     useEffect(() => {
         if (hospitalId) {
@@ -88,6 +89,14 @@ export default function AmbulancePickupScreen() {
             // Pass hospitalId and isAvailable=true
             const data = await api.getAmbulances(hospitalId as string, true);
             setAmbulances(data);
+
+            // If ambulanceId was passed, automatically open the booking modal for it
+            if (ambulanceId && data.length > 0) {
+                const target = data.find((a: any) => a._id === ambulanceId);
+                if (target) {
+                    initiateBooking(target);
+                }
+            }
         } catch (error) {
             console.error(error);
             showStatus('error', 'Failed to fetch ambulances');
@@ -191,13 +200,13 @@ export default function AmbulancePickupScreen() {
                         <ThemedText style={styles.statusText}>Available Now</ThemedText>
                     </View>
                 </View>
-                <TouchableOpacity
-                    style={styles.bookBtn}
+                <ThemedButton
+                    title="Book Now"
                     onPress={() => initiateBooking(item)}
                     disabled={bookingLoading}
-                >
-                    <ThemedText style={styles.bookBtnText}>Book Now</ThemedText>
-                </TouchableOpacity>
+                    style={{ minHeight: 44, paddingHorizontal: 16 }}
+                    textStyle={{ fontSize: 14 }}
+                />
             </View>
         </View>
     );
@@ -313,24 +322,20 @@ export default function AmbulancePickupScreen() {
                                 </View>
 
                                 <View style={styles.modalActions}>
-                                    <TouchableOpacity
-                                        style={styles.cancelButton}
+                                    <ThemedButton
+                                        title="Cancel"
+                                        variant="outline"
                                         onPress={() => setModalVisible(false)}
                                         disabled={bookingLoading}
-                                    >
-                                        <ThemedText style={styles.cancelText}>Cancel</ThemedText>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity
-                                        style={styles.confirmButton}
+                                        style={{ flex: 1 }}
+                                    />
+                                    <ThemedButton
+                                        title="Confirm & Book"
                                         onPress={confirmBooking}
+                                        isLoading={bookingLoading}
                                         disabled={bookingLoading}
-                                    >
-                                        {bookingLoading ? (
-                                            <ActivityIndicator color="#fff" />
-                                        ) : (
-                                            <ThemedText style={styles.confirmText}>Confirm & Book</ThemedText>
-                                        )}
-                                    </TouchableOpacity>
+                                        style={{ flex: 1 }}
+                                    />
                                 </View>
                             </>
                         ) : (
@@ -344,12 +349,13 @@ export default function AmbulancePickupScreen() {
                                     Your ambulance is on its way. Use live tracking to see the driver's location.
                                 </ThemedText>
 
-                                <TouchableOpacity
-                                    style={styles.trackButton}
+                                <ThemedButton
+                                    title="Track Live"
+                                    variant="gradient"
+                                    icon={<MaterialCommunityIcons name="map-marker-radius" size={18} color="white" />}
                                     onPress={handleTrackNow}
-                                >
-                                    <ThemedText style={styles.trackButtonText}>Track Live</ThemedText>
-                                </TouchableOpacity>
+                                    style={{ width: '100%' }}
+                                />
 
                                 <TouchableOpacity
                                     onPress={() => setModalVisible(false)}
@@ -398,7 +404,7 @@ const styles = StyleSheet.create({
     },
     headerTitle: {
         fontSize: 20,
-        fontWeight: 'bold',
+        fontFamily: FONTS.bold,
         color: COLORS.text,
     },
     list: {
@@ -426,7 +432,7 @@ const styles = StyleSheet.create({
     },
     cardTitle: {
         fontSize: 18,
-        fontWeight: 'bold',
+        fontFamily: FONTS.bold,
         color: COLORS.text,
         marginBottom: 4,
     },
@@ -449,7 +455,7 @@ const styles = StyleSheet.create({
     statusText: {
         fontSize: 12,
         color: '#22C55E',
-        fontWeight: '600',
+        fontFamily: FONTS.semiBold,
     },
     bookBtn: {
         backgroundColor: COLORS.primary,
@@ -489,7 +495,7 @@ const styles = StyleSheet.create({
     },
     modalTitle: {
         fontSize: 22,
-        fontWeight: 'bold',
+        fontFamily: FONTS.bold,
         color: COLORS.text,
         textAlign: 'center',
     },
@@ -504,7 +510,7 @@ const styles = StyleSheet.create({
     },
     label: {
         fontSize: 14,
-        fontWeight: '600',
+        fontFamily: FONTS.semiBold,
         color: COLORS.text,
         marginLeft: 4,
     },
@@ -513,6 +519,7 @@ const styles = StyleSheet.create({
         padding: 16,
         borderRadius: 12,
         fontSize: 16,
+        fontFamily: FONTS.regular,
         borderWidth: 1,
         borderColor: '#E2E8F0',
         color: COLORS.text,
@@ -576,7 +583,7 @@ const styles = StyleSheet.create({
     },
     successTitle: {
         fontSize: 24,
-        fontWeight: 'bold',
+        fontFamily: FONTS.bold,
         color: COLORS.text,
         textAlign: 'center'
     },
@@ -585,7 +592,8 @@ const styles = StyleSheet.create({
         color: COLORS.textLight,
         textAlign: 'center',
         marginBottom: 16,
-        lineHeight: 22
+        lineHeight: 22,
+        fontFamily: FONTS.regular,
     },
     trackButton: {
         backgroundColor: COLORS.primary,

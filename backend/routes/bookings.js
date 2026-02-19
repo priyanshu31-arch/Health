@@ -13,7 +13,8 @@ router.get('/', async (req, res) => {
   try {
     const bookings = await Booking.find()
       .populate('hospital', 'name')
-      .populate('itemId');
+      .populate('itemId')
+      .populate('sharedRecords');
     res.json(bookings);
   } catch (err) {
     console.error(err.message);
@@ -32,6 +33,7 @@ router.get('/my', auth, async (req, res) => {
     const bookings = await Booking.find({ user: req.user.id })
       .populate('hospital', 'name')
       .populate('itemId')
+      .populate('sharedRecords')
       .sort({ bookedAt: -1 });
     res.json(bookings);
   } catch (err) {
@@ -44,7 +46,7 @@ router.get('/my', auth, async (req, res) => {
 // @desc    Create a new booking
 // @access  Public (Auth optional)
 router.post('/', async (req, res) => {
-  const { bookingType, itemId, hospital, patientName, contactNumber, isOffline } = req.body;
+  const { bookingType, itemId, hospital, patientName, contactNumber, isOffline, sharedRecords } = req.body;
   const token = req.header('x-auth-token');
 
   try {
@@ -72,6 +74,7 @@ router.post('/', async (req, res) => {
       contactNumber,
       user: userId, // Optional
       isOffline: isOffline || false,
+      sharedRecords: sharedRecords || []
     });
 
     const booking = await newBooking.save();

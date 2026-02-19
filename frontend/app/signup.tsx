@@ -49,7 +49,7 @@ export default function SignupScreen() {
                 }
 
                 try {
-                    const uploadRes = await api.uploadImage(formData);
+                    const uploadRes = await api.uploadFile(formData);
                     profilePhoto = uploadRes.url;
                 } catch (uploadError: any) {
                     console.error('Image Upload Error:', uploadError);

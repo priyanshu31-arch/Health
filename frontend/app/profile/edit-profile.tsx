@@ -131,7 +131,7 @@ export default function EditProfile() {
         }
 
         try {
-          const uploadRes = await api.uploadImage(formData);
+          const uploadRes = await api.uploadFile(formData);
           finalPhoto = uploadRes.url;
           setProfilePhoto(finalPhoto);
         } catch (uploadError: any) {

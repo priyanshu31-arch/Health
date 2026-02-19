@@ -205,6 +205,16 @@ export default function ProfileScreen() {
             onPress={() => router.push('/profile/booking-history')}
           />
           <MenuItem
+            icon="document-text-outline"
+            label="My Health Records"
+            onPress={() => router.push('/health-records' as any)}
+          />
+          <MenuItem
+            icon="shield-checkmark-outline"
+            label="Medical Access Requests"
+            onPress={() => router.push('/profile/consent-requests')}
+          />
+          <MenuItem
             icon="card-outline"
             label="Payment Methods"
             onPress={handlePaymentMethods}

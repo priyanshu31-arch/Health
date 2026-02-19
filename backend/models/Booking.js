@@ -49,6 +49,10 @@ const BookingSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  sharedRecords: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'HealthRecord'
+  }],
 });
 
 module.exports = mongoose.model('Booking', BookingSchema);

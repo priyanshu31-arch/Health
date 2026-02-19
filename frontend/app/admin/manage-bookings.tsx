@@ -104,6 +104,26 @@ export default function ManageBookingsScreen() {
                     <MaterialCommunityIcons name="delete" size={24} color={COLORS.error} />
                 </TouchableOpacity>
             </View>
+
+            {item.sharedRecords && item.sharedRecords.length > 0 && (
+                <TouchableOpacity
+                    style={styles.recordsBtn}
+                    onPress={() => {
+                        if (Platform.OS === 'web') {
+                            const records = item.sharedRecords.map((r: any) => `${r.type}: ${r.value} ${r.unit || ''}`).join('\n');
+                            alert(`Shared Records:\n${records}`);
+                        } else {
+                            Alert.alert(
+                                'Shared Medical Records',
+                                item.sharedRecords.map((r: any) => `• ${r.type}: ${r.value} ${r.unit || ''} (${new Date(r.date).toLocaleDateString()})`).join('\n')
+                            );
+                        }
+                    }}
+                >
+                    <MaterialCommunityIcons name="file-document-multiple" size={20} color={COLORS.primary} />
+                    <ThemedText style={styles.recordsText}>{item.sharedRecords.length} Records Shared</ThemedText>
+                </TouchableOpacity>
+            )}
         </View>
     );
 
@@ -199,4 +219,19 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: 'bold',
     },
+    recordsBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: '#EFF6FF',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 8,
+        marginRight: 8
+    },
+    recordsText: {
+        fontSize: 12,
+        color: COLORS.primary,
+        fontWeight: '600'
+    }
 });

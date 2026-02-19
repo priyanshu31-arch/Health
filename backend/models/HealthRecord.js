@@ -30,6 +30,23 @@ const HealthRecordSchema = new mongoose.Schema({
         type: Date,
         default: Date.now,
     },
+    hash: {
+        type: String,
+        required: false, // Will be generated before save
+    },
+});
+
+// Blockchain Simulation: Generate Hash before saving
+const crypto = require('crypto');
+
+HealthRecordSchema.pre('save', function (next) {
+    if (!this.isModified('hash')) {
+        // Create a string from critical data fields
+        const dataString = `${this.user}-${this.type}-${this.value}-${this.date.toISOString()}`;
+        // Generate SHA-256 hash
+        this.hash = crypto.createHash('sha256').update(dataString).digest('hex');
+    }
+    next();
 });
 
 module.exports = mongoose.model('HealthRecord', HealthRecordSchema);

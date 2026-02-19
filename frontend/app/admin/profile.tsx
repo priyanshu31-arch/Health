@@ -129,7 +129,7 @@ export default function ManageProfile() {
                     } as any);
                 }
 
-                const uploadResponse = await api.uploadImage(formData);
+                const uploadResponse = await api.uploadFile(formData);
                 if (uploadResponse && uploadResponse.url) {
                     photoUrl = uploadResponse.url;
                 }

@@ -60,6 +60,7 @@ const BASE_URL_TO_USE = getBaseUrl();
 // 📡 API CONFIGURATION
 // =============================================================================
 export const API_BASE_URL = BASE_URL_TO_USE;
+export const SOCKET_URL = BASE_URL_TO_USE; // Socket server usually runs on same base URL
 
 // =============================================================================
 // 🔐 AUTH TOKEN MANAGEMENT
@@ -88,9 +89,13 @@ const fetchApi = async <T>(endpoint: string, options: FetchOptions = {}): Promis
     };
 
     if (authenticated) {
-        const token = await AsyncStorage.getItem('token');
+        // Use in-memory token first, then fallback to storage
+        const token = authToken || await AsyncStorage.getItem('token');
         if (token) {
             headers['x-auth-token'] = token;
+        } else {
+            console.warn('🗝️ Authenticated request attempted without token.');
+            throw new Error('No authentication token found. Please log in again.');
         }
     }
 
@@ -573,6 +578,7 @@ export const api = {
     getProfile: async (): Promise<AuthResponse['user']> => {
         return fetchApi<AuthResponse['user']>('/api/auth/me');
     },
+<<<<<<< HEAD
     // ==========================================================================
     // 🔐 CONSENT MANAGEMENT
     // ==========================================================================
@@ -625,10 +631,31 @@ export const api = {
     /**
      * Get all health records
      */
+=======
+
+    // ==========================================================================
+    // 🔍 NEW MODULES: DOCTORS, TIPS, RECORDS, DISEASES
+    // ==========================================================================
+
+    getDoctors: async (params?: { specialty?: string; hospital?: string }): Promise<any[]> => {
+        let url = '/api/doctors';
+        if (params) {
+            const query = new URLSearchParams(params as any).toString();
+            if (query) url += `?${query}`;
+        }
+        return fetchApi<any[]>(url, { authenticated: false });
+    },
+
+    getHealthTips: async (): Promise<any[]> => {
+        return fetchApi<any[]>('/api/health-tips', { authenticated: false });
+    },
+
+>>>>>>> cbf4325b31298dea7ad2135b3aedc40fd391eaa0
     getHealthRecords: async (): Promise<any[]> => {
         return fetchApi<any[]>('/api/health-records');
     },
 
+<<<<<<< HEAD
     /**
      * Add a new health record
      */
@@ -646,6 +673,12 @@ export const api = {
         return fetchApi(`/api/health-records/${id}`, {
             method: 'DELETE',
         });
+=======
+    getDiseases: async (search?: string): Promise<any[]> => {
+        let url = '/api/diseases';
+        if (search) url += `?search=${encodeURIComponent(search)}`;
+        return fetchApi<any[]>(url, { authenticated: false });
+>>>>>>> cbf4325b31298dea7ad2135b3aedc40fd391eaa0
     },
 };
 

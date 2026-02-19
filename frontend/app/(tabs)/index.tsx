@@ -116,27 +116,31 @@ export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const [hospitals, setHospitals] = useState<Hospital[]>([]);
+  const [doctors, setDoctors] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const { unreadCount } = useNotifications();
 
   useEffect(() => {
-    const fetchHospitals = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        const data = await api.getHospitals();
-        setHospitals(data);
+        const [hospitalsData, doctorsData] = await Promise.all([
+          api.getHospitals(),
+          api.getDoctors()
+        ]);
+        setHospitals(hospitalsData);
+        setDoctors(doctorsData);
         setError(null);
       } catch (err: any) {
-        console.error('Failed to fetch hospitals:', err);
-        setError('Failed to load hospitals');
-        setHospitals([]);
+        console.error('Failed to fetch dashboard data:', err);
+        setError('Failed to load dashboard data');
       } finally {
         setLoading(false);
       }
     };
-    fetchHospitals();
+    fetchData();
   }, []);
 
   const displayHospitals = (hospitals.length > 0
@@ -152,9 +156,9 @@ export default function HomeScreen() {
       { _id: '2', name: 'ARC Max Hospital', location: 'Springfield, IL', rating: 4.9, image: hospitalImages[1] },
     ]).filter(h => h.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
-  const displayDoctors = fallbackDoctors.filter(d =>
-    d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    d.specialization.toLowerCase().includes(searchQuery.toLowerCase())
+  const displayDoctors = (doctors.length > 0 ? doctors : fallbackDoctors).filter(d =>
+    (d.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (d.specialization || d.specialty || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handlePressAction = (path: string) => {

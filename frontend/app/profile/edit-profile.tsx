@@ -183,6 +183,17 @@ export default function EditProfile() {
     }
   };
 
+  if (!user && !isInitializing) {
+    // Non-blocking redirect
+    setTimeout(() => router.replace('/login'), 0);
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={styles.loadingText}>Redirecting to login...</Text>
+      </View>
+    );
+  }
+
   if (isInitializing) {
     return (
       <View style={styles.loadingContainer}>

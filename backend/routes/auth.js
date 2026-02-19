@@ -46,7 +46,6 @@ router.post('/signup', async (req, res) => {
       { expiresIn: 3600 },
       (err, token) => {
         if (err) throw err;
-        if (err) throw err;
         res.json({
           token,
           user: {
@@ -101,7 +100,6 @@ router.post('/login', async (req, res) => {
       { expiresIn: 3600 },
       (err, token) => {
         if (err) throw err;
-        if (err) throw err;
         res.json({
           token,
           user: {
@@ -137,21 +135,7 @@ router.get('/me', require('../middleware/auth'), async (req, res) => {
   }
 });
 
-// @route   GET /api/auth/me
-// @desc    Get current user profile
-// @access  Private
-router.get('/me', require('../middleware/auth'), async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id).select('-password');
-    if (!user) {
-      return res.status(404).json({ msg: 'User not found' });
-    }
-    res.json(user);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
-  }
-});
+
 
 // @route   PUT /api/auth/profile
 // @desc    Update user profile

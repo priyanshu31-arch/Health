@@ -6,7 +6,7 @@ import { io } from 'socket.io-client';
 import * as Location from 'expo-location';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
-import { SOCKET_URL } from '../../config';
+import { SOCKET_URL } from '../../app/config/api.config';
 import { COLORS, SHADOWS, FONTS } from '../../constants/theme';
 import { ThemedText } from '../themed-text';
 import { ThemedButton } from '../ui/ThemedButton';

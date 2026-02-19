@@ -12,7 +12,8 @@ interface DoctorCardProps {
   doctor: {
     id?: string;
     name: string;
-    specialization: string;
+    specialization?: string;
+    specialty?: string;
     rating: number;
     image: any;
   };
@@ -60,7 +61,9 @@ export default function DoctorCard({ doctor, onPress }: DoctorCardProps) {
 
           <View style={styles.specializationRow}>
             <MaterialCommunityIcons name="stethoscope" size={12} color={COLORS.primary} />
-            <ThemedText style={styles.specialization} numberOfLines={1}>{doctor.specialization}</ThemedText>
+            <ThemedText style={styles.specialization} numberOfLines={1}>
+              {doctor.specialization || doctor.specialty || 'General Physician'}
+            </ThemedText>
           </View>
 
           {/* Availability */}

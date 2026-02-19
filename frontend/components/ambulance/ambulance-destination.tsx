@@ -17,7 +17,7 @@ const AmbulanceDestinationScreen = () => {
 
       {/* Search and hospital list goes here */}
 
-      <TouchableOpacity style={styles.confirmButton} onPress={() => router.push('/ambulance-type')}>
+      <TouchableOpacity style={styles.confirmButton} onPress={() => router.push('/ambulance/select-hospital')}>
         <Text style={styles.confirmButtonText}>Confirm Destination</Text>
       </TouchableOpacity>
     </ScrollView>

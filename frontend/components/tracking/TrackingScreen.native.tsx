@@ -276,13 +276,8 @@ export default function TrackingScreen() {
 
                 <View style={styles.infoRow}>
                     <View style={styles.infoBox}>
-                        <ThemedText style={styles.label}>Ambulance ID</ThemedText>
-                        <ThemedText style={styles.value}>{vehicleNumber || 'Pending'}</ThemedText>
-                    </View>
-                    <View style={styles.divider} />
-                    <View style={styles.infoBox}>
-                        <ThemedText style={styles.label}>Patient Name</ThemedText>
-                        <ThemedText style={styles.value}>{patientName || 'Emergency'}</ThemedText>
+                        <ThemedText style={styles.label}>Vehicle</ThemedText>
+                        <ThemedText style={styles.value}>{vehicleNumber || 'Tracking...'}</ThemedText>
                     </View>
                 </View>
 
@@ -291,22 +286,7 @@ export default function TrackingScreen() {
                     <ThemedText style={styles.statusText}>{status}</ThemedText>
                 </View>
 
-                {role === 'admin' && !isAcknowledged && (
-                    <ThemedButton
-                        title="Acknowledge & Dispatch"
-                        onPress={sendAck}
-                        style={styles.actionBtn}
-                        variant="primary"
-                    />
-                )}
 
-                <ThemedButton
-                    title={role === 'user' ? "Call Driver" : "Contact Patient"}
-                    onPress={() => Alert.alert('Call', 'Dialing phone number...')}
-                    variant="outline"
-                    style={[styles.actionBtn, (role === 'admin' && !isAcknowledged) && { marginTop: 12 }]}
-                    icon={<Ionicons name="call" size={18} color={COLORS.primary} />}
-                />
             </View>
         </View>
     );

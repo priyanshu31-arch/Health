@@ -2,7 +2,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform }
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useEffect, useState, Suspense, lazy } from 'react';
-import io from 'socket.io-client';
+import { io } from 'socket.io-client';
 
 import { SOCKET_URL } from '../../config';
 import { COLORS, SHADOWS, FONTS } from '../../constants/theme';
@@ -51,10 +51,10 @@ export default function TrackingScreenWeb() {
 
         newSocket.on('receive_location', (loc: any) => {
             console.log('Received Remote Location:', loc);
-            if (loc && loc.latitude && loc.longitude) {
+            if (loc && (loc.latitude || loc.lat) && (loc.longitude || loc.lng)) {
                 setRemoteLocation({
-                    latitude: parseFloat(loc.latitude),
-                    longitude: parseFloat(loc.longitude)
+                    latitude: parseFloat(loc.latitude || loc.lat),
+                    longitude: parseFloat(loc.longitude || loc.lng)
                 });
                 setStatus('Tracking live location');
             }
@@ -124,13 +124,8 @@ export default function TrackingScreenWeb() {
 
                 <View style={styles.infoRow}>
                     <View style={styles.infoBox}>
-                        <ThemedText style={styles.label}>Ambulance</ThemedText>
-                        <ThemedText style={styles.value}>{vehicleNumber || 'Finding...'}</ThemedText>
-                    </View>
-                    <View style={styles.divider} />
-                    <View style={styles.infoBox}>
-                        <ThemedText style={styles.label}>Patient</ThemedText>
-                        <ThemedText style={styles.value}>{patientName || 'Emergency'}</ThemedText>
+                        <ThemedText style={styles.label}>Vehicle</ThemedText>
+                        <ThemedText style={styles.value}>{vehicleNumber || 'Tracking...'}</ThemedText>
                     </View>
                 </View>
 
@@ -139,15 +134,7 @@ export default function TrackingScreenWeb() {
                     <ThemedText style={styles.statusText}>{status}</ThemedText>
                 </View>
 
-                {role === 'user' && (
-                    <ThemedButton
-                        title="Emergency Call"
-                        onPress={() => window.alert('Connecting to driver...')}
-                        variant="primary"
-                        style={styles.actionBtn}
-                        icon={<Ionicons name="call" size={18} color="white" style={{ marginRight: 8 }} />}
-                    />
-                )}
+
             </View>
         </View>
     );

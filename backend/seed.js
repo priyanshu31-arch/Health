@@ -11,23 +11,23 @@ dotenv.config();
 const sampleHospitals = [
     {
         name: 'Apollo Hospital',
-        bio: 'Jayanagar, Bangalore • Multi-speciality',
+        bio: 'Sector 34, Chandigarh • Multi-speciality',
         rating: 4.8,
         photo: 'https://images.unsplash.com/photo-1587351021759-3e566b9af9ef?q=80&w=2072&auto=format&fit=crop',
         email: 'admin@apollo.com',
         phone: '+919988776655'
     },
     {
-        name: 'Manipal Hospital',
-        bio: 'Whitefield, Bangalore • Premium Care',
+        name: 'Max Hospital',
+        bio: 'Mohali, Chandigarh • Premium Care',
         rating: 4.6,
         photo: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?q=80&w=2053&auto=format&fit=crop',
-        email: 'admin@manipal.com',
+        email: 'admin@max.com',
         phone: '+919988776644'
     },
     {
         name: 'Fortis Hospital',
-        bio: 'Bannerghatta Road, Bangalore • Heart Care',
+        bio: 'Sector 62, Chandigarh • Heart Care',
         rating: 4.7,
         photo: 'https://images.unsplash.com/photo-1512678080530-7760d81faba6?q=80&w=2074&auto=format&fit=crop',
         email: 'admin@fortis.com',
@@ -71,7 +71,10 @@ const seedDatabase = async () => {
                 user: user._id,
                 bio: h.bio,
                 rating: h.rating,
-                photo: h.photo
+                photo: h.photo,
+                address: 'Chandigarh, India',
+                latitude: 30.7333 + (Math.random() * 0.05),
+                longitude: 76.7794 + (Math.random() * 0.05)
             });
             const savedHospital = await hospital.save();
             createdHospitals.push(savedHospital);
@@ -93,13 +96,13 @@ const seedDatabase = async () => {
             const ambulances = [];
             for (let i = 1; i <= 5; i++) {
                 ambulances.push({
-                    ambulanceNumber: `KA-0${i}-${1000 + Math.floor(Math.random() * 9000)}`,
+                    ambulanceNumber: `CH-0${i}-${1000 + Math.floor(Math.random() * 9000)}`,
                     isAvailable: Math.random() > 0.2,
                     hospital: savedHospital._id,
                     status: 'available',
                     currentLocation: {
                         type: 'Point',
-                        coordinates: [77.5946 + (Math.random() * 0.1), 12.9716 + (Math.random() * 0.1)] // Random Bangalore coords
+                        coordinates: [76.7794 + (Math.random() * 0.1), 30.7333 + (Math.random() * 0.1)] // Random Chandigarh coords
                     }
                 });
             }

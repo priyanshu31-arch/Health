@@ -15,27 +15,30 @@ export default function TrackingScreen() {
     const params = useLocalSearchParams();
     const {
         bookingId, role, patientName, vehicleNumber,
-        pickupLat, pickupLon, dropLat, dropLon, dropAddress
+        pickupLat, pickupLon, dropLat, dropLon, dropAddress,
+        ambulanceLat, ambulanceLon
     } = params;
 
     const router = useRouter();
     const mapRef = useRef<MapView>(null);
 
     // Parse params safely
-    const pLat = pickupLat ? parseFloat(pickupLat as string) : 12.9716;
-    const pLon = pickupLon ? parseFloat(pickupLon as string) : 77.5946;
+    const pLat = pickupLat ? parseFloat(pickupLat as string) : undefined;
+    const pLon = pickupLon ? parseFloat(pickupLon as string) : undefined;
     const dLat = dropLat ? parseFloat(dropLat as string) : undefined;
     const dLon = dropLon ? parseFloat(dropLon as string) : undefined;
+    const ambLat = ambulanceLat ? parseFloat(ambulanceLat as string) : undefined;
+    const ambLon = ambulanceLon ? parseFloat(ambulanceLon as string) : undefined;
 
-    // Initial region (fallback to Bangalore)
+    // Initial region (Center on Ambulance if available, else Pickup)
     const [region] = useState({
-        latitude: pLat,
-        longitude: pLon,
+        latitude: ambLat || pLat,
+        longitude: ambLon || pLon,
         latitudeDelta: 0.015,
         longitudeDelta: 0.015,
     });
 
-    const [status, setStatus] = useState('Connecting to tracking service...');
+    const [status, setStatus] = useState(ambLat ? 'Ambulance Found' : 'Live Tracking');
     const [socket, setSocket] = useState<any>(null);
     const [isAcknowledged, setIsAcknowledged] = useState(false);
     const [connected, setConnected] = useState(false);
@@ -44,8 +47,8 @@ export default function TrackingScreen() {
 
     // Animated Region for Ambulance
     const [ambulanceCoordinate] = useState(new AnimatedRegion({
-        latitude: pLat,
-        longitude: pLon,
+        latitude: ambLat || pLat,
+        longitude: ambLon || pLon,
         latitudeDelta: 0.015,
         longitudeDelta: 0.015,
     }));
@@ -98,7 +101,7 @@ export default function TrackingScreen() {
                     duration,
                 } as any).start();
 
-                setStatus('Tracking live location');
+                setStatus('Ambulance Found');
             }
         });
 

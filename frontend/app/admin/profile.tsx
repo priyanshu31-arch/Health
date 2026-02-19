@@ -238,7 +238,7 @@ export default function ManageProfile() {
                                 style={styles.input}
                                 value={latitude}
                                 onChangeText={setLatitude}
-                                placeholder="e.g. 12.9716"
+                                placeholder="e.g. 30.7333"
                                 keyboardType="numeric"
                             />
                         </View>
@@ -248,7 +248,7 @@ export default function ManageProfile() {
                                 style={styles.input}
                                 value={longitude}
                                 onChangeText={setLongitude}
-                                placeholder="e.g. 77.5946"
+                                placeholder="e.g. 76.7794"
                                 keyboardType="numeric"
                             />
                         </View>

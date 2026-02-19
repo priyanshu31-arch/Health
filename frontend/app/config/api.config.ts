@@ -22,7 +22,8 @@ const DEV_CONFIG = {
 
 // Production Configuration (when deployed)
 const PROD_CONFIG = {
-    URL: 'https://health-hub-main.onrender.com',
+    // URL: 'https://health-hub-main.onrender.com',
+    URL: 'http://localhost:5000',
 };
 
 // =============================================================================

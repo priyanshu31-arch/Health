@@ -38,8 +38,8 @@ function RecenterMap({ lat, lon }: { lat: number; lon: number }) {
 }
 
 interface MapProps {
-    lat: number;
-    lon: number;
+    ambulanceLat?: number;
+    ambulanceLon?: number;
     vehicleNumber?: string;
     status: string;
     pickupLat?: number;
@@ -50,11 +50,15 @@ interface MapProps {
 }
 
 export default function LeafletMap({
-    lat, lon, vehicleNumber, status,
+    ambulanceLat, ambulanceLon, vehicleNumber, status,
     pickupLat, pickupLon, dropLat, dropLon, dropAddress
 }: MapProps) {
     const [routePositions, setRoutePositions] = useState<[number, number][]>([]);
     const lastFetchPos = useRef<{ lat: number; lon: number } | null>(null);
+
+    // Determine Map Center: Priority -> Ambulance -> Pickup -> Drop -> Default
+    const centerLat = ambulanceLat || pickupLat || dropLat || 20.5937;
+    const centerLon = ambulanceLon || pickupLon || dropLon || 78.9629;
 
     // Function to calculate distance (simple approximation)
     const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -71,16 +75,16 @@ export default function LeafletMap({
     };
 
     useEffect(() => {
-        if (!pickupLat || !pickupLon) return;
+        if (!pickupLat || !pickupLon || !ambulanceLat || !ambulanceLon) return;
 
         // Only fetch route if we haven't fetched yet OR if we've moved significantly (> 100m)
         if (lastFetchPos.current) {
-            const dist = getDistance(lat, lon, lastFetchPos.current.lat, lastFetchPos.current.lon);
+            const dist = getDistance(ambulanceLat, ambulanceLon, lastFetchPos.current.lat, lastFetchPos.current.lon);
             if (dist < 100) return; // Skip if moved less than 100 meters
         }
 
         const fetchRoute = async () => {
-            const start = `${lon},${lat}`;
+            const start = `${ambulanceLon},${ambulanceLat}`;
             const pickup = `${pickupLon},${pickupLat}`;
             let waypoints = `${start};${pickup}`;
 
@@ -97,7 +101,7 @@ export default function LeafletMap({
                     const coords = data.routes[0].geometry.coordinates;
                     const positions = coords.map((c: number[]) => [c[1], c[0]] as [number, number]);
                     setRoutePositions(positions);
-                    lastFetchPos.current = { lat, lon };
+                    lastFetchPos.current = { lat: ambulanceLat, lon: ambulanceLon };
                 }
             } catch (error) {
                 console.error("Error fetching route:", error);
@@ -105,12 +109,12 @@ export default function LeafletMap({
         };
 
         fetchRoute();
-    }, [lat, lon, pickupLat, pickupLon, dropLat, dropLon]);
+    }, [ambulanceLat, ambulanceLon, pickupLat, pickupLon, dropLat, dropLon]);
 
     return (
         <MapContainer
-            center={[lat, lon]}
-            zoom={15} // Slightly closer zoom for tracking
+            center={[centerLat, centerLon]}
+            zoom={13} // Better overview zoom
             style={{ width: '100%', height: '100%' }}
             zoomControl={false}
         >
@@ -119,13 +123,15 @@ export default function LeafletMap({
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
 
-            {/* Ambulance Marker */}
-            <Marker position={[lat, lon]} icon={ambulanceIcon}>
-                <Popup>
-                    <b>Ambulance {vehicleNumber || ''}</b> <br />
-                    {status}
-                </Popup>
-            </Marker>
+            {/* Ambulance Marker - Only if available */}
+            {ambulanceLat && ambulanceLon && (
+                <Marker position={[ambulanceLat, ambulanceLon]} icon={ambulanceIcon}>
+                    <Popup>
+                        <b>Ambulance {vehicleNumber || ''}</b> <br />
+                        {status}
+                    </Popup>
+                </Marker>
+            )}
 
             {/* Pickup Marker */}
             {pickupLat && pickupLon && (
@@ -152,7 +158,7 @@ export default function LeafletMap({
                 <Polyline positions={routePositions} pathOptions={{ color: '#3B82F6', weight: 4, opacity: 0.6, dashArray: '10, 10' }} />
             )}
 
-            <RecenterMap lat={lat} lon={lon} />
+            <RecenterMap lat={centerLat} lon={centerLon} />
         </MapContainer>
     );
 }

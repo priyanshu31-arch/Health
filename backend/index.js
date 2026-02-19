@@ -36,6 +36,10 @@ app.use('/api/bookings', require('./routes/bookings'));
 app.use('/api/ambulance', require('./routes/ambulance-booking.js'));
 app.use('/api/chat', require('./routes/chat'));
 app.use('/api/upload', require('./routes/upload'));
+app.use('/api/health-tips', require('./routes/healthTips'));
+app.use('/api/health-records', require('./routes/healthRecords'));
+app.use('/api/doctors', require('./routes/doctors'));
+app.use('/api/diseases', require('./routes/diseases'));
 
 // Serve static uploads
 app.use('/uploads', express.static('uploads'));

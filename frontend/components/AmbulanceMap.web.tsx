@@ -12,7 +12,9 @@ let L: any;
 const ChangeView = ({ center, zoom }: { center: [number, number], zoom: number }) => {
     // @ts-ignore
     const map = useMap();
-    map.setView(center, zoom);
+    useEffect(() => {
+        map.panTo(center, { animate: true, duration: 1.0 });
+    }, [center]);
     return null;
 };
 

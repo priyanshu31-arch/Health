@@ -1,15 +1,15 @@
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState, useRef } from 'react';
-import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
+import MapView, { Marker, PROVIDER_DEFAULT, Polyline } from 'react-native-maps';
 import io from 'socket.io-client/dist/socket.io.js';
 import * as Location from 'expo-location';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { SOCKET_URL } from '../../config';
-
-// Configure Socket - Should match your backend URL
-// const SOCKET_URL = 'http://localhost:5000';
+import { COLORS, SHADOWS, FONTS } from '../../constants/theme';
+import { ThemedText } from '../themed-text';
+import { ThemedButton } from '../ui/ThemedButton';
 
 export default function TrackingScreen() {
     const {
@@ -20,7 +20,7 @@ export default function TrackingScreen() {
     const mapRef = useRef<MapView>(null);
 
     // Initial region (fallback to Bangalore)
-    const [region, setRegion] = useState({
+    const [region] = useState({
         latitude: pickupLat ? parseFloat(pickupLat as string) : 12.9716,
         longitude: pickupLon ? parseFloat(pickupLon as string) : 77.5946,
         latitudeDelta: 0.05,
@@ -28,9 +28,10 @@ export default function TrackingScreen() {
     });
 
     const [remoteLocation, setRemoteLocation] = useState<any>(null);
-    const [status, setStatus] = useState('Waiting for ambulance location...');
+    const [status, setStatus] = useState('Connecting to ambulance...');
     const [socket, setSocket] = useState<any>(null);
     const [isAcknowledged, setIsAcknowledged] = useState(false);
+    const [connected, setConnected] = useState(false);
 
     // Parse params
     const pLat = pickupLat ? parseFloat(pickupLat as string) : undefined;
@@ -39,18 +40,30 @@ export default function TrackingScreen() {
     const dLon = dropLon ? parseFloat(dropLon as string) : undefined;
 
     useEffect(() => {
+        if (!bookingId) return;
+
         // Init Socket
-        const newSocket = io(SOCKET_URL);
+        const newSocket = io(SOCKET_URL, {
+            transports: ['websocket'],
+            reconnection: true,
+        });
         setSocket(newSocket);
 
         newSocket.on('connect', () => {
             console.log('Socket Connected');
+            setConnected(true);
             newSocket.emit('join_booking', bookingId);
+            setStatus('Joined booking session');
+        });
+
+        newSocket.on('disconnect', () => {
+            console.log('Socket Disconnected');
+            setConnected(false);
+            setStatus('Connection lost. Reconnecting...');
         });
 
         newSocket.on('receive_location', (loc: any) => {
             console.log('Received Remote Location:', loc);
-            // Ensure numbers
             if (loc && loc.latitude && loc.longitude) {
                 const newLoc = {
                     latitude: parseFloat(loc.latitude),
@@ -58,14 +71,15 @@ export default function TrackingScreen() {
                 };
                 setRemoteLocation(newLoc);
 
-                // Optional: Auto-center on ambulance
-                // mapRef.current?.animateToRegion({
-                //     ...newLoc,
-                //     latitudeDelta: 0.02,
-                //     longitudeDelta: 0.02,
-                // }, 1000);
+                // Smoothly animate to updated location
+                mapRef.current?.animateToRegion({
+                    ...newLoc,
+                    latitudeDelta: 0.01,
+                    longitudeDelta: 0.01,
+                }, 1000);
+
+                setStatus('Tracking live location');
             }
-            setStatus('Active');
         });
 
         newSocket.on('receive_ack', (data: any) => {
@@ -77,35 +91,32 @@ export default function TrackingScreen() {
         return () => {
             newSocket.disconnect();
         };
-    }, []);
+    }, [bookingId]);
 
     // Location Tracking (Self) - Only emit if Driver/Admin. User just watches.
     useEffect(() => {
         let subscription: any;
+        if (!socket || !connected) return;
+
         (async () => {
-            let { status } = await Location.requestForegroundPermissionsAsync();
-            if (status !== 'granted') return;
+            let { status: permissionStatus } = await Location.requestForegroundPermissionsAsync();
+            if (permissionStatus !== 'granted') return;
 
             subscription = await Location.watchPositionAsync(
                 {
                     accuracy: Location.Accuracy.High,
-                    timeInterval: 5000,
-                    distanceInterval: 10,
+                    timeInterval: 2000, // Faster updates for smoother tracking
+                    distanceInterval: 5,
                 },
                 (loc) => {
                     const { latitude, longitude } = loc.coords;
 
-                    // Only emit if NOT basic user (i.e. if Role is Driver - not implemented yet, or Admin)
-                    // For now, let's say 'user' doesn't emit to avoid confusion, or does?
-                    // If 'user' emits, 'ambulance' listener sees it.
-                    // Assuming this screen is reused for Driver later.
-                    if (role === 'admin') {
-                        if (socket) {
-                            socket.emit('send_location', {
-                                bookingId,
-                                location: { latitude, longitude }
-                            });
-                        }
+                    // Support for Driver role or Admin to share their location
+                    if (role === 'admin' || role === 'driver') {
+                        socket.emit('send_location', {
+                            bookingId,
+                            location: { latitude, longitude }
+                        });
                     }
                 }
             );
@@ -114,21 +125,35 @@ export default function TrackingScreen() {
         return () => {
             if (subscription) subscription.remove();
         };
-    }, [socket, role]);
+    }, [socket, connected, role, bookingId]);
 
     const sendAck = () => {
-        if (socket) {
+        if (socket && connected) {
             socket.emit('send_ack', bookingId);
             setIsAcknowledged(true);
-            setStatus('Acknowledged. Sharing location.');
+            setStatus('Starting trip...');
+        } else {
+            Alert.alert('Error', 'Socket not connected. Please wait.');
         }
     };
 
     return (
         <View style={styles.container}>
+            {/* Transparent Header Over Map */}
             <View style={styles.header}>
-                <Ionicons name="arrow-back" size={24} color="black" onPress={() => router.back()} />
-                <Text style={styles.headerTitle}>Live Tracking</Text>
+                <TouchableOpacity
+                    style={styles.backButton}
+                    onPress={() => router.back()}
+                >
+                    <Ionicons name="arrow-back" size={24} color={COLORS.text} />
+                </TouchableOpacity>
+                <View style={styles.headerContent}>
+                    <ThemedText style={styles.headerTitle}>Live Tracking</ThemedText>
+                    <View style={styles.connectionStatus}>
+                        <View style={[styles.statusDot, { backgroundColor: connected ? '#22C55E' : '#EF4444' }]} />
+                        <ThemedText style={styles.connectionText}>{connected ? 'Connected' : 'Offline'}</ThemedText>
+                    </View>
+                </View>
             </View>
 
             <MapView
@@ -137,16 +162,17 @@ export default function TrackingScreen() {
                 provider={PROVIDER_DEFAULT}
                 initialRegion={region}
                 showsUserLocation={true}
+                showsMyLocationButton={false}
+                showsCompass={false}
             >
                 {/* Ambulance Marker (Remote) */}
                 {remoteLocation && (
                     <Marker
                         coordinate={remoteLocation}
-                        title="Ambulance"
-                        description={vehicleNumber as string || "Ambulance"}
+                        anchor={{ x: 0.5, y: 0.5 }}
                     >
-                        <View style={styles.markerContainer}>
-                            <Ionicons name="medical" size={24} color="red" />
+                        <View style={styles.ambulanceMarker}>
+                            <MaterialCommunityIcons name="ambulance" size={22} color="white" />
                         </View>
                     </Marker>
                 )}
@@ -155,28 +181,75 @@ export default function TrackingScreen() {
                 {pLat && pLon && (
                     <Marker
                         coordinate={{ latitude: pLat, longitude: pLon }}
-                        title="Pickup Location"
-                        pinColor="green"
-                    />
+                        title="Pickup Point"
+                    >
+                        <View style={[styles.pointMarker, { borderColor: '#22C55E' }]}>
+                            <View style={[styles.pointInner, { backgroundColor: '#22C55E' }]} />
+                        </View>
+                    </Marker>
                 )}
 
                 {/* Drop Marker */}
                 {dLat && dLon && (
                     <Marker
                         coordinate={{ latitude: dLat, longitude: dLon }}
-                        title="Drop Location"
-                        description={dropAddress as string}
-                        pinColor="blue"
+                        title="Hospital"
+                    >
+                        <View style={[styles.pointMarker, { borderColor: COLORS.primary }]}>
+                            <View style={[styles.pointInner, { backgroundColor: COLORS.primary }]} />
+                        </View>
+                    </Marker>
+                )}
+
+                {/* Simple Path if locations available */}
+                {remoteLocation && pLat && pLon && (
+                    <Polyline
+                        coordinates={[remoteLocation, { latitude: pLat, longitude: pLon }]}
+                        strokeWidth={3}
+                        strokeColor={COLORS.primary + '80'}
+                        lineDashPattern={[5, 5]}
                     />
                 )}
             </MapView>
 
+            {/* Bottom Info Card */}
             <View style={styles.footer}>
-                <Text style={styles.statusText}>Status: {status}</Text>
+                <View style={styles.dragHandle} />
+
+                <View style={styles.infoRow}>
+                    <View style={styles.infoBox}>
+                        <ThemedText style={styles.label}>Ambulance</ThemedText>
+                        <ThemedText style={styles.value}>{vehicleNumber || 'Finding...'}</ThemedText>
+                    </View>
+                    <View style={styles.divider} />
+                    <View style={styles.infoBox}>
+                        <ThemedText style={styles.label}>Patient</ThemedText>
+                        <ThemedText style={styles.value}>{patientName || 'Emergency'}</ThemedText>
+                    </View>
+                </View>
+
+                <View style={styles.statusIndicator}>
+                    {!remoteLocation && connected && <ActivityIndicator size="small" color={COLORS.primary} style={{ marginRight: 8 }} />}
+                    <ThemedText style={styles.statusText}>{status}</ThemedText>
+                </View>
+
                 {role === 'admin' && !isAcknowledged && (
-                    <TouchableOpacity style={styles.ackButton} onPress={sendAck}>
-                        <Text style={styles.ackButtonText}>Acknowledge & Start Trip</Text>
-                    </TouchableOpacity>
+                    <ThemedButton
+                        title="Acknowledge & Start Trip"
+                        onPress={sendAck}
+                        style={styles.actionBtn}
+                        variant="primary"
+                    />
+                )}
+
+                {role === 'user' && (
+                    <ThemedButton
+                        title="Call Emergency"
+                        onPress={() => Alert.alert('Call', 'Connecting to driver...')}
+                        variant="outline"
+                        style={styles.actionBtn}
+                        icon={<Ionicons name="call" size={18} color={COLORS.primary} style={{ marginRight: 8 }} />}
+                    />
                 )}
             </View>
         </View>
@@ -186,59 +259,141 @@ export default function TrackingScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff',
+        backgroundColor: COLORS.background,
     },
     header: {
+        position: 'absolute',
+        top: Platform.OS === 'ios' ? 60 : 40,
+        left: 20,
+        right: 20,
         flexDirection: 'row',
         alignItems: 'center',
-        paddingTop: 50,
+        zIndex: 10,
+    },
+    backButton: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: COLORS.white,
+        justifyContent: 'center',
+        alignItems: 'center',
+        ...SHADOWS.medium,
+    },
+    headerContent: {
+        flex: 1,
+        marginLeft: 12,
+        backgroundColor: COLORS.white,
+        paddingVertical: 8,
         paddingHorizontal: 16,
-        paddingBottom: 16,
-        backgroundColor: '#fff',
-        zIndex: 1,
-        elevation: 2,
+        borderRadius: 22,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        ...SHADOWS.medium,
     },
     headerTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        marginLeft: 16,
+        fontSize: 16,
+        fontFamily: FONTS.bold,
+        color: COLORS.text,
+    },
+    connectionStatus: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    statusDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        marginRight: 6,
+    },
+    connectionText: {
+        fontSize: 12,
+        fontFamily: FONTS.medium,
+        color: COLORS.textLight,
     },
     map: {
         flex: 1,
     },
     footer: {
-        padding: 20,
-        backgroundColor: '#fff',
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        elevation: 10,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
+        backgroundColor: COLORS.white,
+        padding: 24,
+        paddingTop: 12,
+        borderTopLeftRadius: 32,
+        borderTopRightRadius: 32,
+        ...SHADOWS.medium,
+    },
+    dragHandle: {
+        width: 40,
+        height: 4,
+        backgroundColor: '#E2E8F0',
+        borderRadius: 2,
+        alignSelf: 'center',
+        marginBottom: 20,
+    },
+    infoRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    infoBox: {
+        flex: 1,
+    },
+    label: {
+        fontSize: 12,
+        color: COLORS.textLight,
+        fontFamily: FONTS.medium,
+        marginBottom: 4,
+    },
+    value: {
+        fontSize: 16,
+        color: COLORS.text,
+        fontFamily: FONTS.bold,
+    },
+    divider: {
+        width: 1,
+        height: 30,
+        backgroundColor: '#E2E8F0',
+        marginHorizontal: 16,
+    },
+    statusIndicator: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.background,
+        padding: 12,
+        borderRadius: 12,
+        marginBottom: 24,
     },
     statusText: {
-        fontSize: 16,
-        fontWeight: '600',
-        marginBottom: 10,
-        color: '#333',
+        fontSize: 14,
+        color: COLORS.text,
+        fontFamily: FONTS.medium,
     },
-    ackButton: {
-        backgroundColor: '#EF4444',
-        padding: 15,
-        borderRadius: 12,
-        alignItems: 'center',
+    actionBtn: {
+        width: '100%',
     },
-    ackButtonText: {
-        color: '#fff',
-        fontWeight: 'bold',
-        fontSize: 16,
-    },
-    markerContainer: {
-        backgroundColor: 'white',
-        padding: 5,
+    ambulanceMarker: {
+        width: 40,
+        height: 40,
         borderRadius: 20,
-        borderWidth: 1,
-        borderColor: '#ccc'
-    }
+        backgroundColor: '#EF4444',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 3,
+        borderColor: 'white',
+        ...SHADOWS.medium,
+    },
+    pointMarker: {
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        backgroundColor: 'white',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+    },
+    pointInner: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+    },
 });

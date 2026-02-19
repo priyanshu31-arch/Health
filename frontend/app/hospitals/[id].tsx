@@ -4,7 +4,7 @@ import { ActivityIndicator, ScrollView, StyleSheet, TouchableOpacity, View, Text
 import { Image } from 'expo-image';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, SHADOWS } from '../../constants/theme';
+import { COLORS, SHADOWS, FONTS } from '../../constants/theme';
 import { ThemedText } from '../../components/themed-text';
 import { api } from '../config/api.config';
 import * as Haptics from 'expo-haptics';
@@ -12,6 +12,7 @@ import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated';
 import { scheduleBookingNotification } from '../../utils/notifications';
 import { useNotifications } from '@/context/NotificationContext';
 import Shimmer from '@/components/Shimmer';
+import { ThemedButton } from '@/components/ui/ThemedButton';
 
 interface Bed {
     _id: string;
@@ -102,6 +103,13 @@ export default function HospitalDetailsScreen() {
     };
 
     const handleBookPress = (item: Bed | Ambulance, type: 'bed' | 'ambulance') => {
+        if (type === 'ambulance') {
+            router.push({
+                pathname: '/ambulance/pickup',
+                params: { hospitalId: id as string, ambulanceId: item._id }
+            });
+            return;
+        }
         setSelectedItem(item);
         setBookingType(type);
         setBookingSuccess(false);
@@ -236,9 +244,12 @@ export default function HospitalDetailsScreen() {
                                 <MaterialCommunityIcons name="bed" size={24} color={bed.isAvailable ? COLORS.primary : COLORS.textLight} />
                                 <ThemedText style={styles.cardTitle}>{bed.bedNumber}</ThemedText>
                                 {bed.isAvailable ? (
-                                    <TouchableOpacity style={styles.bookButton} onPress={() => handleBookPress(bed, 'bed')}>
-                                        <ThemedText style={styles.bookButtonText}>Book</ThemedText>
-                                    </TouchableOpacity>
+                                    <ThemedButton
+                                        title="Book"
+                                        onPress={() => handleBookPress(bed, 'bed')}
+                                        style={{ width: '100%', minHeight: 36 }}
+                                        textStyle={{ fontSize: 13 }}
+                                    />
                                 ) : (
                                     <View style={styles.bookedBadge}>
                                         <ThemedText style={styles.bookedText}>Occupied</ThemedText>
@@ -271,9 +282,13 @@ export default function HospitalDetailsScreen() {
                                     <ThemedText style={styles.statusText}>{amb.isAvailable ? 'Ready for dispatch' : 'Currently on mission'}</ThemedText>
                                 </View>
                                 {amb.isAvailable ? (
-                                    <TouchableOpacity style={[styles.bookButton, { backgroundColor: COLORS.secondary, width: 'auto', paddingHorizontal: 20 }]} onPress={() => handleBookPress(amb, 'ambulance')}>
-                                        <ThemedText style={styles.bookButtonText}>Book</ThemedText>
-                                    </TouchableOpacity>
+                                    <ThemedButton
+                                        title="Book"
+                                        variant="secondary"
+                                        onPress={() => handleBookPress(amb, 'ambulance')}
+                                        style={{ minHeight: 40, paddingHorizontal: 20 }}
+                                        textStyle={{ fontSize: 13 }}
+                                    />
                                 ) : (
                                     <View style={styles.bookedBadge}>
                                         <ThemedText style={styles.bookedText}>Busy</ThemedText>
@@ -344,17 +359,19 @@ export default function HospitalDetailsScreen() {
                                 />
 
                                 <View style={styles.modalButtons}>
-                                    <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
-                                        <ThemedText style={styles.cancelButtonText}>Cancel</ThemedText>
-                                    </TouchableOpacity>
-                                    <View style={{ flex: 1 }}>
-                                        <Button
-                                            title={submitting ? "..." : "Confirm"}
-                                            onPress={submitBooking}
-                                            disabled={submitting}
-                                            color={COLORS.primary}
-                                        />
-                                    </View>
+                                    <ThemedButton
+                                        title="Cancel"
+                                        variant="outline"
+                                        onPress={() => setModalVisible(false)}
+                                        style={{ flex: 1 }}
+                                    />
+                                    <ThemedButton
+                                        title={submitting ? '...' : 'Confirm'}
+                                        onPress={submitBooking}
+                                        isLoading={submitting}
+                                        disabled={submitting}
+                                        style={{ flex: 1 }}
+                                    />
                                 </View>
                             </>
                         ) : (
@@ -371,15 +388,14 @@ export default function HospitalDetailsScreen() {
                                     Your {bookingType} has been successfully booked.
                                 </ThemedText>
 
-                                <TouchableOpacity
+                                <ThemedButton
+                                    title="Done"
                                     onPress={() => {
                                         setModalVisible(false);
                                         fetchDetails(false);
                                     }}
-                                    style={styles.confirmButton}
-                                >
-                                    <ThemedText style={styles.confirmButtonText}>Done</ThemedText>
-                                </TouchableOpacity>
+                                    style={{ width: '100%', marginTop: 8 }}
+                                />
                             </Animated.View>
                         )}
                     </View>
@@ -435,7 +451,7 @@ const styles = StyleSheet.create({
     hospitalName: {
         color: '#fff',
         fontSize: 24,
-        fontWeight: 'bold',
+        fontFamily: FONTS.semiBold,
     },
     hospitalBio: {
         color: 'rgba(255,255,255,0.8)',
@@ -455,15 +471,15 @@ const styles = StyleSheet.create({
     },
     ratingText: {
         color: '#fff',
-        fontWeight: 'bold',
+        fontWeight: '500',
         fontSize: 12,
     },
     contentContainer: {
         padding: 20,
         marginTop: -20,
         backgroundColor: COLORS.background,
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
+        borderTopLeftRadius: 16,
+        borderTopRightRadius: 16,
     },
     sectionHeader: {
         flexDirection: 'row',
@@ -473,7 +489,7 @@ const styles = StyleSheet.create({
     },
     sectionTitle: {
         fontSize: 18,
-        fontWeight: 'bold',
+        fontFamily: FONTS.semiBold,
     },
     badge: {
         backgroundColor: COLORS.success + '20',
@@ -495,14 +511,14 @@ const styles = StyleSheet.create({
         width: '30%',
         backgroundColor: COLORS.white,
         padding: 12,
-        borderRadius: 16,
+        borderRadius: 12,
         alignItems: 'center',
         gap: 8,
         ...SHADOWS.small,
     },
     cardTitle: {
         fontSize: 14,
-        fontWeight: '600',
+        fontFamily: FONTS.medium,
     },
     bookButton: {
         backgroundColor: COLORS.primary,
@@ -515,7 +531,7 @@ const styles = StyleSheet.create({
     bookButtonText: {
         color: '#fff',
         fontSize: 12,
-        fontWeight: '600',
+        fontWeight: '500',
     },
     unavailableText: {
         color: COLORS.textLight,
@@ -537,7 +553,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: COLORS.white,
         padding: 12,
-        borderRadius: 16,
+        borderRadius: 12,
         gap: 12,
         ...SHADOWS.small,
     },
@@ -566,14 +582,14 @@ const styles = StyleSheet.create({
     modalContent: {
         width: '100%',
         backgroundColor: COLORS.white,
-        borderRadius: 24,
+        borderRadius: 16,
         padding: 24,
         alignItems: 'center',
         ...SHADOWS.medium,
     },
     modalTitle: {
         fontSize: 20,
-        fontWeight: 'bold',
+        fontWeight: '600',
         marginBottom: 8,
     },
     modalSubtitle: {
@@ -612,13 +628,13 @@ const styles = StyleSheet.create({
     },
     cancelButtonText: {
         color: COLORS.text,
-        fontWeight: '600',
+        fontWeight: '500',
     },
     statsContainer: {
         flexDirection: 'row',
         backgroundColor: COLORS.white,
         padding: 20,
-        borderRadius: 20,
+        borderRadius: 12,
         marginBottom: 24,
         ...SHADOWS.medium,
         alignItems: 'center',
@@ -632,7 +648,7 @@ const styles = StyleSheet.create({
     },
     statNumber: {
         fontSize: 20,
-        fontWeight: '800',
+        fontFamily: FONTS.semiBold,
         color: COLORS.text,
     },
     statLabel: {
@@ -648,7 +664,7 @@ const styles = StyleSheet.create({
     sectionSubtitle: {
         fontSize: 14,
         color: COLORS.primary,
-        fontWeight: '600',
+        fontWeight: '500',
     },
     cardDisabled: {
         opacity: 0.7,
@@ -663,7 +679,7 @@ const styles = StyleSheet.create({
     bookedText: {
         fontSize: 11,
         color: COLORS.textLight,
-        fontWeight: '600',
+        fontWeight: '500',
     },
     emptyContainer: {
         width: '100%',
@@ -673,7 +689,7 @@ const styles = StyleSheet.create({
     },
     confirmButtonText: {
         color: '#fff',
-        fontWeight: '600',
+        fontWeight: '500',
     },
     // Success State Styles
     successContainer: {
@@ -693,7 +709,7 @@ const styles = StyleSheet.create({
     },
     successTitle: {
         fontSize: 24,
-        fontWeight: 'bold',
+        fontFamily: FONTS.semiBold,
         color: COLORS.text,
         textAlign: 'center'
     },
@@ -702,7 +718,8 @@ const styles = StyleSheet.create({
         color: COLORS.textLight,
         textAlign: 'center',
         marginBottom: 16,
-        lineHeight: 22
+        lineHeight: 22,
+        fontFamily: FONTS.regular,
     },
     errorContainer: {
         flexDirection: 'row',

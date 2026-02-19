@@ -14,11 +14,12 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { COLORS, SHADOWS } from '../../constants/theme';
+import { COLORS, SHADOWS, FONTS } from '../../constants/theme';
 import * as ImagePicker from 'expo-image-picker';
 import { api, API_BASE_URL } from '@/app/config/api.config';
 import { ThemedText } from '@/components/themed-text';
 import { LinearGradient } from 'expo-linear-gradient';
+import { ThemedButton } from '@/components/ui/ThemedButton';
 
 export default function ProfileScreen() {
   const { user, logout, refetchUser } = useAuth();
@@ -96,21 +97,13 @@ export default function ProfileScreen() {
             Please log in to view your profile, manage bookings, and access medical history.
           </ThemedText>
 
-          <TouchableOpacity
-            style={styles.loginBtn}
+          <ThemedButton
+            title="Login Now"
+            variant="gradient"
+            icon={<MaterialCommunityIcons name="login" size={20} color="#FFF" />}
             onPress={() => router.push('/login')}
-            activeOpacity={0.8}
-          >
-            <LinearGradient
-              colors={[COLORS.primary, '#0ea5e9']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.loginGradient}
-            >
-              <MaterialCommunityIcons name="login" size={24} color="#FFF" />
-              <Text style={styles.loginBtnText}>Login Now</Text>
-            </LinearGradient>
-          </TouchableOpacity>
+            style={{ width: '100%', marginBottom: 16 }}
+          />
 
           <TouchableOpacity
             onPress={() => router.push('/signup')}
@@ -164,13 +157,12 @@ export default function ProfileScreen() {
             </View>
           )}
 
-          <TouchableOpacity
-            style={styles.editBtn}
+          <ThemedButton
+            title="Edit Profile"
+            icon={<MaterialCommunityIcons name="pencil" size={16} color="#FFF" />}
             onPress={() => router.push('/profile/edit-profile')}
-          >
-            <MaterialCommunityIcons name="pencil" size={16} color="#FFF" />
-            <Text style={styles.editBtnText}>Edit Profile</Text>
-          </TouchableOpacity>
+            style={{ borderRadius: 25, minHeight: 44, marginTop: 12 }}
+          />
         </View>
 
         {/* Personal Info */}
@@ -266,19 +258,19 @@ export default function ProfileScreen() {
             </Text>
 
             <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={styles.cancelBtn}
+              <ThemedButton
+                title="Cancel"
+                variant="outline"
                 onPress={() => setLogoutVisible(false)}
-              >
-                <Text style={styles.cancelText}>Cancel</Text>
-              </TouchableOpacity>
+                style={{ flex: 1 }}
+              />
 
-              <TouchableOpacity
-                style={styles.logoutBtn}
+              <ThemedButton
+                title="Logout"
+                variant="danger"
                 onPress={confirmLogout}
-              >
-                <Text style={styles.logoutText}>Logout</Text>
-              </TouchableOpacity>
+                style={{ flex: 1 }}
+              />
             </View>
           </View>
         </View>
@@ -348,7 +340,7 @@ const styles = StyleSheet.create({
 
   header: {
     fontSize: 28,
-    fontWeight: '800',
+    fontFamily: FONTS.semiBold,
     color: COLORS.text,
   },
 
@@ -388,7 +380,7 @@ const styles = StyleSheet.create({
 
   name: {
     fontSize: 24,
-    fontWeight: '800',
+    fontFamily: FONTS.semiBold,
     color: COLORS.text,
     marginBottom: 4,
   },
@@ -396,6 +388,7 @@ const styles = StyleSheet.create({
   email: {
     fontSize: 14,
     color: COLORS.textLight,
+    fontFamily: FONTS.regular,
     marginBottom: 12,
   },
 
@@ -412,7 +405,7 @@ const styles = StyleSheet.create({
 
   adminText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: FONTS.semiBold,
     color: COLORS.primary,
   },
 
@@ -423,13 +416,13 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 25,
+    borderRadius: 12,
     ...SHADOWS.small,
   },
 
   editBtnText: {
     color: COLORS.white,
-    fontWeight: '700',
+    fontWeight: '500',
     fontSize: 15,
   },
 
@@ -454,7 +447,7 @@ const styles = StyleSheet.create({
 
   statValue: {
     fontSize: 20,
-    fontWeight: '800',
+    fontFamily: FONTS.semiBold,
     color: COLORS.text,
     marginTop: 8,
   },
@@ -462,6 +455,7 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 12,
     color: COLORS.textLight,
+    fontFamily: FONTS.regular,
   },
 
   menu: {
@@ -508,7 +502,7 @@ const styles = StyleSheet.create({
   infoValue: {
     fontSize: 15,
     color: COLORS.text,
-    fontWeight: '600',
+    fontWeight: '500',
   },
 
   cameraBtn: {
@@ -527,7 +521,7 @@ const styles = StyleSheet.create({
 
   sectionTitle: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: FONTS.semiBold,
     color: COLORS.textLight,
     paddingHorizontal: 20,
     paddingTop: 20,
@@ -563,7 +557,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     color: COLORS.text,
-    fontWeight: '600',
+    fontFamily: FONTS.medium,
   },
 
   version: {
@@ -571,6 +565,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.textLight,
     paddingVertical: 20,
+    fontFamily: FONTS.regular,
   },
 
   /* Modal */
@@ -604,7 +599,7 @@ const styles = StyleSheet.create({
 
   modalTitle: {
     fontSize: 22,
-    fontWeight: '800',
+    fontFamily: FONTS.semiBold,
     marginBottom: 8,
     color: COLORS.text,
   },
@@ -614,6 +609,7 @@ const styles = StyleSheet.create({
     color: COLORS.textLight,
     textAlign: 'center',
     marginBottom: 24,
+    fontFamily: FONTS.regular,
   },
 
   modalActions: {
@@ -632,7 +628,7 @@ const styles = StyleSheet.create({
 
   cancelText: {
     color: COLORS.text,
-    fontWeight: '700',
+    fontWeight: '500',
     fontSize: 15,
   },
 
@@ -646,7 +642,7 @@ const styles = StyleSheet.create({
 
   logoutText: {
     color: COLORS.white,
-    fontWeight: '700',
+    fontWeight: '500',
     fontSize: 15,
   },
 
@@ -677,7 +673,7 @@ const styles = StyleSheet.create({
   },
   lockedTitle: {
     fontSize: 28,
-    fontWeight: '900',
+    fontFamily: FONTS.semiBold,
     color: COLORS.text,
     marginBottom: 12,
   },
@@ -687,10 +683,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 40,
+    fontFamily: FONTS.regular,
   },
   loginBtn: {
     width: '100%',
-    borderRadius: 20,
+    borderRadius: 12,
     overflow: 'hidden',
     ...SHADOWS.medium,
   },
@@ -704,7 +701,7 @@ const styles = StyleSheet.create({
   loginBtnText: {
     color: COLORS.white,
     fontSize: 18,
-    fontWeight: '800',
+    fontWeight: '500',
   },
   signupLink: {
     marginTop: 24,
@@ -713,9 +710,10 @@ const styles = StyleSheet.create({
   signupText: {
     fontSize: 15,
     color: COLORS.textLight,
+    fontFamily: FONTS.regular,
   },
   signupHighlight: {
     color: COLORS.primary,
-    fontWeight: '800',
+    fontFamily: FONTS.semiBold,
   },
 });

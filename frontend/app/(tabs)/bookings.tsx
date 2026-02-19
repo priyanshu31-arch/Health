@@ -10,10 +10,11 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ThemedText } from '@/components/themed-text';
-import { COLORS, SHADOWS } from '../../constants/theme';
+import { COLORS, SHADOWS, FONTS } from '../../constants/theme';
 import { api } from '../config/api.config';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'expo-router';
+import { ThemedButton } from '@/components/ui/ThemedButton';
 
 export default function BookingsScreen() {
     const router = useRouter();
@@ -98,12 +99,11 @@ export default function BookingsScreen() {
             <View style={styles.center}>
                 <MaterialCommunityIcons name="account-lock" size={64} color={COLORS.textLight} />
                 <ThemedText style={styles.message}>Please login to view your bookings</ThemedText>
-                <TouchableOpacity
-                    style={styles.loginButton}
+                <ThemedButton
+                    title="Login Now"
                     onPress={() => router.push('/login')}
-                >
-                    <ThemedText style={styles.loginButtonText}>Login Now</ThemedText>
-                </TouchableOpacity>
+                    style={{ width: 200, marginTop: 8 }}
+                />
             </View>
         );
     }
@@ -134,12 +134,12 @@ export default function BookingsScreen() {
                         <View style={styles.emptyState}>
                             <MaterialCommunityIcons name="calendar-blank" size={64} color={COLORS.textLight} />
                             <ThemedText style={styles.emptyText}>No bookings found</ThemedText>
-                            <TouchableOpacity
-                                style={styles.bookButton}
+                            <ThemedButton
+                                title="Book Now"
                                 onPress={() => router.push('/hospitals')}
-                            >
-                                <ThemedText style={styles.bookButtonText}>Book Now</ThemedText>
-                            </TouchableOpacity>
+                                variant="secondary"
+                                style={{ width: 160, marginTop: 8 }}
+                            />
                         </View>
                     }
                 />
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
     },
     headerTitle: {
         fontSize: 24,
-        fontWeight: 'bold',
+        fontWeight: '600',
         color: COLORS.white,
     },
     center: {
@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
     },
     hospitalName: {
         fontSize: 16,
-        fontWeight: 'bold',
+        fontFamily: FONTS.semiBold,
         color: COLORS.text,
     },
     date: {
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
     statusText: {
         color: '#059669',
         fontSize: 12,
-        fontWeight: '600',
+        fontFamily: FONTS.medium,
     },
     cardBody: {
         gap: 8,
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
     },
     value: {
         color: COLORS.text,
-        fontWeight: '500',
+        fontFamily: FONTS.medium,
         fontSize: 14,
     },
     message: {
@@ -247,11 +247,11 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.primary,
         paddingHorizontal: 32,
         paddingVertical: 12,
-        borderRadius: 24,
+        borderRadius: 12,
     },
     loginButtonText: {
         color: COLORS.white,
-        fontWeight: 'bold',
+        fontWeight: '500',
         fontSize: 16,
     },
     emptyState: {
@@ -268,10 +268,10 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.secondary,
         paddingHorizontal: 24,
         paddingVertical: 10,
-        borderRadius: 24,
+        borderRadius: 12,
     },
     bookButtonText: {
         color: COLORS.white,
-        fontWeight: 'bold',
+        fontWeight: '500',
     },
 });

@@ -6,7 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
-import { COLORS, SHADOWS } from '@/constants/theme';
+import { COLORS, SHADOWS, FONTS } from '@/constants/theme';
 import { useNotifications, Notification } from '@/context/NotificationContext';
 
 export default function NotificationsScreen() {
@@ -125,12 +125,12 @@ const styles = StyleSheet.create({
     },
     headerTitle: {
         fontSize: 18,
-        fontWeight: 'bold',
+        fontFamily: FONTS.bold,
     },
     headerAction: {
         fontSize: 14,
         color: COLORS.primary,
-        fontWeight: '600',
+        fontFamily: FONTS.semiBold,
     },
     listContent: {
         padding: 20,
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
     },
     itemTitle: {
         fontSize: 16,
-        fontWeight: 'bold',
+        fontFamily: FONTS.bold,
         color: COLORS.text,
         marginBottom: 4,
     },
@@ -206,6 +206,6 @@ const styles = StyleSheet.create({
     },
     clearAllText: {
         color: COLORS.error,
-        fontWeight: '600',
+        fontFamily: FONTS.semiBold,
     },
 });

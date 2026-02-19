@@ -16,9 +16,10 @@ import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { api } from './config/api.config';
-import { COLORS, SHADOWS } from '../constants/theme';
+import { COLORS, SHADOWS, FONTS } from '../constants/theme';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import StatusModal from '@/components/StatusModal';
+import { ThemedButton } from '@/components/ui/ThemedButton';
 
 type Step = 'EMAIL' | 'OTP' | 'RESET';
 
@@ -129,9 +130,13 @@ export default function ForgotPasswordScreen() {
                             autoCapitalize="none"
                         />
 
-                        <TouchableOpacity style={styles.button} onPress={handleRequestOTP} disabled={isLoading}>
-                            {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Send OTP</Text>}
-                        </TouchableOpacity>
+                        <ThemedButton
+                            title="Send OTP"
+                            onPress={handleRequestOTP}
+                            isLoading={isLoading}
+                            disabled={isLoading}
+                            style={{ width: '100%', marginTop: 10 }}
+                        />
                     </Animated.View>
                 );
             case 'OTP':
@@ -150,9 +155,13 @@ export default function ForgotPasswordScreen() {
                             style={[styles.input, { letterSpacing: 8, textAlign: 'center', fontSize: 24, fontWeight: 'bold' }]}
                         />
 
-                        <TouchableOpacity style={styles.button} onPress={handleVerifyOTP} disabled={isLoading}>
-                            {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Verify Code</Text>}
-                        </TouchableOpacity>
+                        <ThemedButton
+                            title="Verify Code"
+                            onPress={handleVerifyOTP}
+                            isLoading={isLoading}
+                            disabled={isLoading}
+                            style={{ width: '100%', marginTop: 10 }}
+                        />
 
                         <TouchableOpacity onPress={handleRequestOTP} style={styles.resendContainer}>
                             <Text style={styles.resendText}>Didn't receive code? <Text style={styles.resendLink}>Resend</Text></Text>
@@ -184,9 +193,13 @@ export default function ForgotPasswordScreen() {
                             maxLength={16}
                         />
 
-                        <TouchableOpacity style={styles.button} onPress={handleResetPassword} disabled={isLoading}>
-                            {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Reset Password</Text>}
-                        </TouchableOpacity>
+                        <ThemedButton
+                            title="Reset Password"
+                            onPress={handleResetPassword}
+                            isLoading={isLoading}
+                            disabled={isLoading}
+                            style={{ width: '100%', marginTop: 10 }}
+                        />
                     </Animated.View>
                 );
         }
@@ -261,7 +274,7 @@ const styles = StyleSheet.create({
     },
     stepTitle: {
         fontSize: 24,
-        fontWeight: 'bold',
+        fontFamily: FONTS.bold,
         color: COLORS.text,
         marginBottom: 10,
     },
@@ -271,6 +284,7 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginBottom: 30,
         lineHeight: 20,
+        fontFamily: FONTS.regular,
     },
     input: {
         width: '100%',
@@ -279,6 +293,7 @@ const styles = StyleSheet.create({
         borderRadius: 15,
         paddingHorizontal: 20,
         fontSize: 16,
+        fontFamily: FONTS.regular,
         marginBottom: 20,
         borderWidth: 1,
         borderColor: COLORS.border,
@@ -304,9 +319,10 @@ const styles = StyleSheet.create({
     resendText: {
         fontSize: 14,
         color: COLORS.textLight,
+        fontFamily: FONTS.regular,
     },
     resendLink: {
         color: COLORS.primary,
-        fontWeight: 'bold',
+        fontFamily: FONTS.bold,
     },
 });

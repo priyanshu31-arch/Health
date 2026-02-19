@@ -6,7 +6,7 @@ import AuthForm from '@/components/AuthForm';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/app/config/api.config';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
-import { COLORS } from '@/constants/theme';
+import { COLORS, FONTS } from '@/constants/theme';
 import StatusModal from '@/components/StatusModal';
 
 export default function SignupScreen() {
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     },
     brand: {
         fontSize: 42,
-        fontWeight: '800',
+        fontFamily: FONTS.semiBold,
         color: '#ffffff',
         marginBottom: 10,
         letterSpacing: 1,
@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
     subtitle: {
         fontSize: 18,
         color: '#e0e0e0',
-        fontWeight: '500',
+        fontFamily: FONTS.medium,
     },
     card: {
         backgroundColor: 'rgba(255, 255, 255, 0.95)',
@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
     },
     welcomeText: {
         fontSize: 24,
-        fontWeight: 'bold',
+        fontWeight: '600',
         color: '#333',
         marginBottom: 20,
         textAlign: 'center',

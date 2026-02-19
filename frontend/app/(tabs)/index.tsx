@@ -14,7 +14,7 @@ import HospitalCard from '../../components/hospitalcard';
 import { api } from '../config/api.config';
 import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/context/NotificationContext';
-import { COLORS, SHADOWS } from '../../constants/theme';
+import { COLORS, SHADOWS, FONTS } from '../../constants/theme';
 import Shimmer from '../../components/Shimmer';
 
 const { width } = Dimensions.get('window');
@@ -241,7 +241,7 @@ export default function HomeScreen() {
         >
           <View style={styles.quickActionsGrid}>
             {[
-              { id: 'ambulance', name: 'Emergency', icon: 'ambulance', path: '/ambulance/pickup', color: '#FEF2F2', iconColor: '#EF4444' },
+              { id: 'ambulance', name: 'Emergency', icon: 'ambulance', path: '/ambulance/select-hospital', color: '#FEF2F2', iconColor: '#EF4444' },
               { id: 'doctor', name: 'Doctors', icon: 'doctor', path: '/doctor', color: '#ECFEFF', iconColor: '#0891B2' },
               { id: 'hospitals', name: 'Hospitals', icon: 'hospital-building', path: '/hospitals', color: '#F0FDF4', iconColor: '#10B981' },
               { id: 'chat', name: 'Health AI', icon: 'robot', path: '/chat', color: '#F5F3FF', iconColor: '#8B5CF6' },
@@ -285,7 +285,7 @@ export default function HomeScreen() {
         <Animated.View entering={FadeInDown.delay(800).duration(800)}>
           <TouchableOpacity
             style={styles.ambulanceFab}
-            onPress={() => handlePressAction('/ambulance/pickup')}
+            onPress={() => handlePressAction('/ambulance/select-hospital')}
             activeOpacity={0.9}
           >
             <LinearGradient
@@ -379,9 +379,9 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   headerGradient: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 50,
-    paddingBottom: 30,
-    paddingHorizontal: 24,
+    paddingTop: Platform.OS === 'ios' ? 35 : 25,
+    paddingBottom: 20,
+    paddingHorizontal: 12,
     borderBottomLeftRadius: 36,
     borderBottomRightRadius: 36,
     ...SHADOWS.large,
@@ -394,13 +394,14 @@ const styles = StyleSheet.create({
   },
   greetingText: {
     fontSize: 26,
-    fontWeight: '800',
+    fontFamily: FONTS.semiBold,
     color: COLORS.white,
   },
   subtitleText: {
     fontSize: 15,
     color: 'rgba(255,255,255,0.8)',
     marginTop: 2,
+    fontFamily: FONTS.regular,
   },
   notificationCircle: {
     width: 44,
@@ -423,16 +424,16 @@ const styles = StyleSheet.create({
     borderColor: COLORS.primary,
   },
   loginButtonHeader: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'rgba(255,255,255,0.15)',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.4)',
+    borderColor: 'rgba(255,255,255,0.3)',
   },
   loginButtonHeaderText: {
     color: COLORS.white,
-    fontWeight: '700',
+    fontFamily: FONTS.medium,
     fontSize: 14,
   },
   searchBar: {
@@ -450,6 +451,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: COLORS.text,
     paddingVertical: 8,
+    fontFamily: FONTS.regular,
   },
   emptyText: {
     textAlign: 'center',
@@ -490,7 +492,7 @@ const styles = StyleSheet.create({
   },
   actionLabel: {
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: FONTS.medium,
     color: COLORS.text,
   },
   bannerSection: {
@@ -511,25 +513,28 @@ const styles = StyleSheet.create({
   bannerTitle: {
     color: COLORS.white,
     fontSize: 22,
-    fontWeight: '800',
+    fontFamily: FONTS.semiBold,
     marginBottom: 8,
   },
   bannerDescription: {
     color: 'rgba(255,255,255,0.8)',
-    fontSize: 14,
+    fontSize: 12,
     marginBottom: 16,
     lineHeight: 20,
+    fontFamily: FONTS.regular,
   },
   bannerButton: {
     backgroundColor: COLORS.white,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
     alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   bannerButtonText: {
     color: COLORS.secondary,
-    fontWeight: '700',
+    fontFamily: FONTS.semiBold,
     fontSize: 13,
   },
   bannerImage: {
@@ -548,12 +553,12 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 19,
-    fontWeight: '800',
+    fontFamily: FONTS.semiBold,
     color: COLORS.text,
   },
   seeAllText: {
     color: COLORS.primary,
-    fontWeight: '700',
+    fontFamily: FONTS.medium,
     fontSize: 14,
   },
   horizontalList: {
@@ -567,16 +572,16 @@ const styles = StyleSheet.create({
   },
   ambulanceFabGradient: {
     flexDirection: 'row',
-    padding: 18,
-    borderRadius: 20,
+    padding: 16,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     gap: 12,
-    ...SHADOWS.large,
+    ...SHADOWS.medium,
   },
   ambulanceFabText: {
     color: COLORS.white,
-    fontWeight: '800',
+    fontFamily: FONTS.semiBold,
     fontSize: 17,
   },
   skeletonDoctorCard: {

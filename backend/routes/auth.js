@@ -8,7 +8,7 @@ const User = require('../models/User');
 // @desc    Register a new user (admin or regular user)
 // @access  Public
 router.post('/signup', async (req, res) => {
-  const { name, email, password, hospitalName } = req.body;
+  const { name, email, password, hospitalName, profilePhoto } = req.body;
 
   try {
     let user = await User.findOne({ email });
@@ -25,6 +25,7 @@ router.post('/signup', async (req, res) => {
       password,
       hospitalName: isHospitalAdmin ? hospitalName : undefined,
       role: isHospitalAdmin ? 'admin' : 'user',
+      profilePhoto: profilePhoto || '',
     });
 
     const salt = await bcrypt.genSalt(10);
@@ -129,6 +130,22 @@ router.post('/login', async (req, res) => {
 router.get('/me', require('../middleware/auth'), async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
+    res.json(user);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET /api/auth/me
+// @desc    Get current user profile
+// @access  Private
+router.get('/me', require('../middleware/auth'), async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('-password');
+    if (!user) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
     res.json(user);
   } catch (err) {
     console.error(err.message);

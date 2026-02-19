@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Text, SafeAreaView, KeyboardAvoidingView, Platform, ImageBackground } from 'react-native';
+import { View, StyleSheet, Text, SafeAreaView, KeyboardAvoidingView, Platform, ImageBackground, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import AuthForm from '@/components/AuthForm';
@@ -30,11 +30,53 @@ export default function SignupScreen() {
     const handleSignup = async (data: any) => {
         setIsLoading(true);
         try {
+            let profilePhoto = '';
+
+            // 1. Upload profile image if selected
+            if (data.profileImageUri) {
+                const formData = new FormData();
+                if (Platform.OS === 'web') {
+                    const response = await fetch(data.profileImageUri);
+                    const blob = await response.blob();
+                    formData.append('image', blob, 'profile.jpg');
+                } else {
+                    // @ts-ignore
+                    formData.append('image', {
+                        uri: data.profileImageUri,
+                        name: 'profile.jpg',
+                        type: 'image/jpeg',
+                    });
+                }
+
+                try {
+                    const uploadRes = await api.uploadImage(formData);
+                    profilePhoto = uploadRes.url;
+                } catch (uploadError: any) {
+                    console.error('Image Upload Error:', uploadError);
+
+                    // Ask user if they want to continue without image
+                    const proceed = await new Promise((resolve) => {
+                        Alert.alert(
+                            'Upload Failed',
+                            `We couldn't upload your profile picture: ${uploadError.message}. Create account anyway?`,
+                            [
+                                { text: 'Stop', onPress: () => resolve(false), style: 'cancel' },
+                                { text: 'Continue without photo', onPress: () => resolve(true) }
+                            ]
+                        );
+                    });
+
+                    if (!proceed) return;
+                }
+            }
+
+            // 2. Register user
             const res = await api.signup({
                 name: data.name,
                 email: data.email,
                 password: data.password,
-                hospitalName: data.hospitalName // Pass hospitalName if present
+                hospitalName: data.hospitalName,
+                profilePhoto // Pass the uploaded photo URL
             });
 
             if (res.token) {

@@ -139,7 +139,7 @@ export default function ProfileScreen() {
                   ? user.profilePhoto.startsWith('http')
                     ? { uri: user.profilePhoto }
                     : { uri: `${API_BASE_URL}${user.profilePhoto}` }
-                  : { uri: 'https://i.pravatar.cc/300' }
+                  : { uri: `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&background=0891B2&color=fff` }
               }
               style={styles.avatar}
               contentFit="cover"

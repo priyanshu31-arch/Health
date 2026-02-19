@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Switch, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Switch, Alert, Platform } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { ThemedButton } from './ui/ThemedButton';
-import { COLORS, FONTS } from '@/constants/theme';
+import { COLORS, SHADOWS, FONTS } from '@/constants/theme';
+import * as ImagePicker from 'expo-image-picker';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 interface AuthFormProps {
     type: 'login' | 'signup';
@@ -18,16 +21,49 @@ export default function AuthForm({ type, onSubmit, isLoading, onToggle }: AuthFo
     const [name, setName] = useState('');
     const [isHospital, setIsHospital] = useState(false);
     const [hospitalName, setHospitalName] = useState('');
+    const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
+
+    const pickImage = async () => {
+        try {
+            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (status !== 'granted') {
+                if (Platform.OS === 'web') {
+                    // Browsers usually don't need explicit permission here, but good to check status
+                } else {
+                    Alert.alert('Permission needed', 'Sorry, we need camera roll permissions to select a photo.');
+                    return;
+                }
+            }
+
+            let result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.6, // Balanced quality
+            });
+
+            if (!result.canceled) {
+                setProfileImageUri(result.assets[0].uri);
+            }
+        } catch (error) {
+            console.error('Error picking image:', error);
+            Alert.alert('Error', 'Failed to open image library');
+        }
+    };
+
+    const handleRemoveImage = () => {
+        setProfileImageUri(null);
+    };
 
     const handleSubmit = () => {
         // Validation logic
         if (type === 'signup') {
             if (!name.trim()) {
-                Alert.alert('Validation Error', 'Please enter your full name.');
+                Alert.alert('Check Input', 'Please enter your full name.');
                 return;
             }
             if (isHospital && !hospitalName.trim()) {
-                Alert.alert('Validation Error', 'Please enter the hospital name.');
+                Alert.alert('Check Input', 'Please enter the hospital name.');
                 return;
             }
         }
@@ -35,7 +71,7 @@ export default function AuthForm({ type, onSubmit, isLoading, onToggle }: AuthFo
         // Email validation
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!email.trim() || !emailRegex.test(email)) {
-            Alert.alert('Invalid Email', 'Please enter a valid email address with an @ symbol (e.g., example@domain.com).');
+            Alert.alert('Invalid Email', 'Please enter a valid email address.');
             return;
         }
 
@@ -44,17 +80,14 @@ export default function AuthForm({ type, onSubmit, isLoading, onToggle }: AuthFo
             Alert.alert('Weak Password', 'Password must be at least 6 characters long.');
             return;
         }
-        if (password.length > 16) {
-            Alert.alert('Password Too Long', 'Password cannot exceed 16 characters.');
-            return;
-        }
 
         onSubmit({
             email,
             password,
             name,
             hospitalName: isHospital ? hospitalName : undefined,
-            role: isHospital ? 'admin' : 'user'
+            role: isHospital ? 'admin' : 'user',
+            profileImageUri
         });
     };
 
@@ -64,11 +97,35 @@ export default function AuthForm({ type, onSubmit, isLoading, onToggle }: AuthFo
 
             {type === 'signup' && (
                 <>
+                    {/* Profile Picture Upload Section */}
+                    <View style={styles.profileUploadSection}>
+                        <View style={styles.avatarWrapper}>
+                            <TouchableOpacity onPress={pickImage} style={styles.avatarContainer}>
+                                {profileImageUri ? (
+                                    <Image source={{ uri: profileImageUri }} style={styles.avatar} contentFit="cover" />
+                                ) : (
+                                    <View style={styles.avatarPlaceholder}>
+                                        <MaterialCommunityIcons name="camera-outline" size={32} color={COLORS.primary} />
+                                    </View>
+                                )}
+                            </TouchableOpacity>
+                            {profileImageUri && (
+                                <TouchableOpacity
+                                    style={styles.removeImageBtn}
+                                    onPress={handleRemoveImage}
+                                >
+                                    <MaterialCommunityIcons name="close-circle" size={22} color={COLORS.error} />
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                        <Text style={styles.profileLabel}>{profileImageUri ? 'Photo Selected' : 'Tap to set Profile Picture'}</Text>
+                    </View>
+
                     <View style={styles.switchContainer}>
                         <Text style={styles.switchLabel}>Register as Hospital?</Text>
                         <Switch
-                            trackColor={{ false: "#767577", true: "#ffcccc" }}
-                            thumbColor={isHospital ? "#D32F2F" : "#f4f3f4"}
+                            trackColor={{ false: "#767577", true: COLORS.primary + '40' }}
+                            thumbColor={isHospital ? COLORS.primary : "#f4f3f4"}
                             onValueChange={setIsHospital}
                             value={isHospital}
                         />
@@ -157,7 +214,7 @@ const styles = StyleSheet.create({
         width: '100%',
         padding: 20,
         backgroundColor: '#fff',
-        borderRadius: 12, // Standardized
+        borderRadius: 12,
         elevation: 3,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
@@ -171,11 +228,53 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         color: '#333',
     },
+    profileUploadSection: {
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    avatarWrapper: {
+        position: 'relative',
+        width: 80,
+        height: 80,
+    },
+    avatarContainer: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: COLORS.background,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        overflow: 'hidden',
+    },
+    removeImageBtn: {
+        position: 'absolute',
+        top: -5,
+        right: -5,
+        backgroundColor: COLORS.white,
+        borderRadius: 11,
+        zIndex: 1,
+    },
+    avatar: {
+        width: '100%',
+        height: '100%',
+    },
+    avatarPlaceholder: {
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    profileLabel: {
+        marginTop: 8,
+        fontSize: 12,
+        color: COLORS.textLight,
+        fontFamily: FONTS.medium,
+    },
     input: {
-        height: 52, // Standardized
+        height: 52,
         borderColor: '#ddd',
         borderWidth: 1,
-        borderRadius: 12, // Standardized
+        borderRadius: 12,
         marginBottom: 15,
         paddingHorizontal: 15,
         fontSize: 16,

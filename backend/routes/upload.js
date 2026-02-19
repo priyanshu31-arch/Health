@@ -15,7 +15,8 @@ const storage = multer.diskStorage({
     },
     filename: function (req, file, cb) {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, uniqueSuffix + path.extname(file.originalname));
+        const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
+        cb(null, 'profile-' + uniqueSuffix + ext);
     }
 });
 
@@ -23,33 +24,46 @@ const upload = multer({
     storage: storage,
     limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
     fileFilter: function (req, file, cb) {
-        const filetypes = /jpeg|jpg|png|gif/;
+        const filetypes = /jpeg|jpg|png|gif|webp/;
         const mimetype = filetypes.test(file.mimetype);
         const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
 
-        if (mimetype && extname) {
+        if (mimetype || extname) {
             return cb(null, true);
         }
-        cb(new Error('Error: Images Only!'));
+        cb(new Error('Error: Images only (jpeg, jpg, png, gif, webp)!'));
     }
 });
 
 // @route   POST /api/upload
 // @desc    Upload an image
-// @access  Public (or Private if needed)
-router.post('/', upload.single('image'), (req, res) => {
-    try {
-        if (!req.file) {
-            return res.status(400).json({ msg: 'No file uploaded' });
+// @access  Public
+router.post('/', (req, res) => {
+    upload.single('image')(req, res, function (err) {
+        if (err instanceof multer.MulterError) {
+            // A Multer error occurred when uploading.
+            console.error('Multer Error:', err);
+            return res.status(400).json({ msg: `Upload error: ${err.message}` });
+        } else if (err) {
+            // An unknown error occurred when uploading.
+            console.error('Unknown Upload Error:', err);
+            return res.status(400).json({ msg: err.message || 'An error occurred during upload' });
         }
-        // Return the URL to access the file
-        // Assumes server is serving 'uploads' static folder
-        const fileUrl = `/uploads/${req.file.filename}`;
-        res.json({ url: fileUrl });
-    } catch (err) {
-        console.error(err);
-        res.status(500).send('Server Error');
-    }
+
+        // Everything went fine.
+        try {
+            if (!req.file) {
+                return res.status(400).json({ msg: 'No file selected' });
+            }
+            // Return the URL to access the file
+            const fileUrl = `/uploads/${req.file.filename}`;
+            console.log('File uploaded successfully:', fileUrl);
+            res.json({ url: fileUrl });
+        } catch (err) {
+            console.error('Server save error:', err);
+            res.status(500).send('Server Error');
+        }
+    });
 });
 
 module.exports = router;

@@ -38,7 +38,13 @@ app.use('/api/chat', require('./routes/chat'));
 app.use('/api/upload', require('./routes/upload'));
 
 // Serve static uploads
-app.use('/uploads', express.static('uploads'));
+const path = require('path');
+const fs = require('fs');
+const uploadsPath = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsPath)) {
+  fs.mkdirSync(uploadsPath, { recursive: true });
+}
+app.use('/uploads', express.static(uploadsPath));
 
 app.get('/', (req, res) => {
   res.send('Hospital Admin Server is running with MongoDB');

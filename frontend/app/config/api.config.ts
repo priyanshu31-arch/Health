@@ -29,15 +29,10 @@ const PROD_CONFIG = {
 // 🌐 DETERMINE THE CORRECT BASE URL
 // =============================================================================
 const getBaseUrl = (): string => {
-    // TEMPORARY: Use production URL for all devices while testing
-    // This connects to your deployed Render backend
-    return PROD_CONFIG.URL;
-
-    /* ORIGINAL CODE - Uncomment when running backend locally:
     // Check if we're in production
-    if (__DEV__ === false) {
-        return PROD_CONFIG.URL;
-    }
+    // if (__DEV__ === false) {
+    //     return PROD_CONFIG.URL;
+    // }
 
     // For development, detect platform
     if (Platform.OS === 'web') {
@@ -45,25 +40,26 @@ const getBaseUrl = (): string => {
     }
 
     if (Platform.OS === 'android') {
-        // Use Android Emulator URL for emulator, or physical device URL
-        // Change this based on your testing environment
         return DEV_CONFIG.ANDROID_EMULATOR_URL;
     }
 
     // iOS Simulator
     if (Platform.OS === 'ios') {
-        return DEV_CONFIG.WEB_URL; // localhost works for iOS simulator
+        return DEV_CONFIG.WEB_URL;
     }
 
     // Default to physical device URL
     return DEV_CONFIG.PHYSICAL_DEVICE_URL;
-    */
 };
+
+// Hard override if needed for testing Render specifically:
+// const BASE_URL_TO_USE = PROD_CONFIG.URL;
+const BASE_URL_TO_USE = getBaseUrl();
 
 // =============================================================================
 // 📡 API CONFIGURATION
 // =============================================================================
-export const API_BASE_URL = getBaseUrl();
+export const API_BASE_URL = BASE_URL_TO_USE;
 
 // =============================================================================
 // 🔐 AUTH TOKEN MANAGEMENT
@@ -118,11 +114,23 @@ const fetchApi = async <T>(endpoint: string, options: FetchOptions = {}): Promis
             const text = await response.text();
             let errorMessage = `HTTP error! status: ${response.status}`;
 
+            if (response.status === 401) {
+                // TOKEN EXPIRED OR INVALID
+                console.warn('⚠️ Authentication token invalid. Clearing session and redirecting.');
+                await AsyncStorage.multiRemove(['token', 'user']);
+
+                // Force a page reload on web to trigger AuthContext logout logic
+                if (Platform.OS === 'web') {
+                    window.location.href = '/login';
+                }
+
+                errorMessage = 'Your session has expired. Please log in again.';
+            }
+
             try {
                 const errorData = JSON.parse(text);
                 errorMessage = errorData.msg || errorMessage;
             } catch (e) {
-                // If response is not JSON, use the text body or default message
                 if (text && text.length < 100) errorMessage = text;
             }
 
@@ -134,7 +142,10 @@ const fetchApi = async <T>(endpoint: string, options: FetchOptions = {}): Promis
         if (!text) return {} as T;
 
         return JSON.parse(text) as T;
-    } catch (error) {
+    } catch (error: any) {
+        if (error.name === 'AbortError') {
+            throw new Error('Request timed out. The server might be waking up (cold start). Please try again in a moment.');
+        }
         console.error('❌ API Error:', error);
         throw error;
     }
@@ -153,6 +164,7 @@ interface SignupData {
     email: string;
     password: string;
     hospitalName?: string;
+    profilePhoto?: string;
 }
 
 interface AuthResponse {
@@ -164,6 +176,7 @@ interface AuthResponse {
         email: string;
         role: string;
         hospitalName?: string;
+        profilePhoto?: string;
     };
 }
 
@@ -499,31 +512,40 @@ export const api = {
     // ==========================================================================
 
     /**
-     * Upload an image
+     * Upload an image to the server
      */
     uploadImage: async (formData: FormData): Promise<{ url: string }> => {
         const token = await AsyncStorage.getItem('token');
-        const headers: Record<string, string> = {
-            'Content-Type': 'multipart/form-data',
-        };
-        if (token) headers['x-auth-token'] = token;
 
-        const response = await fetch(`${API_BASE_URL}/api/upload`, {
-            method: 'POST',
-            body: formData,
-            headers: {
-                // Let request handling set boundary automatically?
-                // Actually for RN FormData, usually better to NOT set Content-Type manually
-                // or let the fetch wrapper handle it.
-                // But our fetch wrapper sets Content-Type: application/json.
-                // So we'll use fetch directly here to be safe and avoid the wrapper's JSON forcing.
-                'x-auth-token': token || '',
+        try {
+            // Use standard fetch for multipart uploads to avoid fetchApi's JSON enforcement
+            const response = await fetch(`${API_BASE_URL}/api/upload`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'x-auth-token': token || '',
+                    // Note: Do NOT set 'Content-Type': 'multipart/form-data' manually.
+                }
+            });
+
+            const text = await response.text();
+            let json;
+            try {
+                json = JSON.parse(text);
+            } catch (e) {
+                console.error('Failed to parse upload response:', text);
+                throw new Error('Server returned an invalid response during upload.');
             }
-        });
 
-        const json = await response.json();
-        if (!response.ok) throw new Error(json.msg || 'Upload failed');
-        return json;
+            if (!response.ok) {
+                console.error('Upload Error Original:', json);
+                throw new Error(json.msg || json.message || 'Upload failed');
+            }
+            return json;
+        } catch (error: any) {
+            console.error('Upload Image Exception:', error);
+            throw error;
+        }
     },
 
     /**
@@ -547,7 +569,7 @@ export const api = {
      * Get current user profile
      */
     getProfile: async (): Promise<AuthResponse['user']> => {
-        return fetchApi<AuthResponse['user']>('/api/auth/me'); // Assuming /api/auth/me exists, common convention. Or /api/auth/profile
+        return fetchApi<AuthResponse['user']>('/api/auth/me');
     },
 };
 

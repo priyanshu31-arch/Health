@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState, useRef } from 'react';
-import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
+import MapView, { Marker, PROVIDER_DEFAULT, AnimatedRegion } from 'react-native-maps';
 import io from 'socket.io-client/dist/socket.io.js';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,10 +27,19 @@ export default function TrackingScreen() {
         longitudeDelta: 0.05,
     });
 
-    const [remoteLocation, setRemoteLocation] = useState<any>(null);
     const [status, setStatus] = useState('Waiting for ambulance location...');
     const [socket, setSocket] = useState<any>(null);
     const [isAcknowledged, setIsAcknowledged] = useState(false);
+    const [permissionStatus, setPermissionStatus] = useState<Location.PermissionStatus | 'undetermined'>('undetermined');
+    const [remoteLocation, setRemoteLocation] = useState<any>(null);
+
+    // Animated Region for Ambulance
+    const [ambulanceCoordinate] = useState(new AnimatedRegion({
+        latitude: pickupLat ? parseFloat(pickupLat as string) : 12.9716,
+        longitude: pickupLon ? parseFloat(pickupLon as string) : 77.5946,
+        latitudeDelta: 0.05,
+        longitudeDelta: 0.05,
+    }));
 
     // Parse params
     const pLat = pickupLat ? parseFloat(pickupLat as string) : undefined;
@@ -58,12 +67,23 @@ export default function TrackingScreen() {
                 };
                 setRemoteLocation(newLoc);
 
-                // Optional: Auto-center on ambulance
-                // mapRef.current?.animateToRegion({
-                //     ...newLoc,
-                //     latitudeDelta: 0.02,
-                //     longitudeDelta: 0.02,
-                // }, 1000);
+                // Animate marker
+                if (Platform.OS === 'android') {
+                    // Android needs a duration
+                    (ambulanceCoordinate as any).timing({
+                        latitude: newLoc.latitude,
+                        longitude: newLoc.longitude,
+                        duration: 1000,
+                        useNativeDriver: false
+                    }).start();
+                } else {
+                    (ambulanceCoordinate as any).timing({
+                        latitude: newLoc.latitude,
+                        longitude: newLoc.longitude,
+                        duration: 1000,
+                        useNativeDriver: false
+                    }).start();
+                }
             }
             setStatus('Active');
         });
@@ -79,26 +99,30 @@ export default function TrackingScreen() {
         };
     }, []);
 
-    // Location Tracking (Self) - Only emit if Driver/Admin. User just watches.
+    const requestLocationPermission = async () => {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        setPermissionStatus(status);
+        return status;
+    };
+
+    // Location Tracking (Self)
     useEffect(() => {
         let subscription: any;
-        (async () => {
-            let { status } = await Location.requestForegroundPermissionsAsync();
+
+        const startTracking = async () => {
+            const status = await requestLocationPermission();
             if (status !== 'granted') return;
 
             subscription = await Location.watchPositionAsync(
                 {
                     accuracy: Location.Accuracy.High,
-                    timeInterval: 5000,
-                    distanceInterval: 10,
+                    timeInterval: 2000, // Faster updates (2s)
+                    distanceInterval: 5, // Smaller distance (5m)
                 },
                 (loc) => {
                     const { latitude, longitude } = loc.coords;
 
-                    // Only emit if NOT basic user (i.e. if Role is Driver - not implemented yet, or Admin)
-                    // For now, let's say 'user' doesn't emit to avoid confusion, or does?
-                    // If 'user' emits, 'ambulance' listener sees it.
-                    // Assuming this screen is reused for Driver later.
+                    // Only emit if Admin (or Driver in future)
                     if (role === 'admin') {
                         if (socket) {
                             socket.emit('send_location', {
@@ -109,12 +133,32 @@ export default function TrackingScreen() {
                     }
                 }
             );
-        })();
+        };
+
+        startTracking();
 
         return () => {
             if (subscription) subscription.remove();
         };
     }, [socket, role]);
+
+    if (permissionStatus !== 'granted' && permissionStatus !== 'undetermined') {
+        return (
+            <View style={styles.center}>
+                <Ionicons name="location-outline" size={64} color="red" />
+                <Text style={styles.permissionText}>Location Permission Needed</Text>
+                <Text style={styles.permissionSubText}>We need your location to track the ambulance accurately.</Text>
+                <TouchableOpacity style={styles.permissionButton} onPress={requestLocationPermission}>
+                    <Text style={styles.permissionButtonText}>Enable Location</Text>
+                </TouchableOpacity>
+                <View style={styles.footer}>
+                    <TouchableOpacity style={[styles.ackButton, { backgroundColor: '#333' }]} onPress={() => router.back()}>
+                        <Text style={styles.ackButtonText}>Go Back</Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
+        );
+    }
 
     const sendAck = () => {
         if (socket) {
@@ -140,15 +184,15 @@ export default function TrackingScreen() {
             >
                 {/* Ambulance Marker (Remote) */}
                 {remoteLocation && (
-                    <Marker
-                        coordinate={remoteLocation}
+                    <Marker.Animated
+                        coordinate={ambulanceCoordinate as any}
                         title="Ambulance"
                         description={vehicleNumber as string || "Ambulance"}
                     >
                         <View style={styles.markerContainer}>
                             <Ionicons name="medical" size={24} color="red" />
                         </View>
-                    </Marker>
+                    </Marker.Animated>
                 )}
 
                 {/* Pickup Marker */}
@@ -240,5 +284,34 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         borderWidth: 1,
         borderColor: '#ccc'
+    },
+    center: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20
+    },
+    permissionText: {
+        fontSize: 22,
+        fontWeight: 'bold',
+        marginTop: 20,
+        marginBottom: 10
+    },
+    permissionSubText: {
+        fontSize: 16,
+        color: '#666',
+        textAlign: 'center',
+        marginBottom: 30
+    },
+    permissionButton: {
+        backgroundColor: '#EF4444',
+        paddingHorizontal: 30,
+        paddingVertical: 15,
+        borderRadius: 25
+    },
+    permissionButtonText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: 'bold'
     }
 });

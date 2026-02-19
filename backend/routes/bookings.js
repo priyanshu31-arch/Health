@@ -44,12 +44,12 @@ router.get('/my', auth, async (req, res) => {
 // @desc    Create a new booking
 // @access  Public (Auth optional)
 router.post('/', async (req, res) => {
-  const { bookingType, itemId, hospital, patientName, contactNumber } = req.body;
+  const { bookingType, itemId, hospital, patientName, contactNumber, isOffline } = req.body;
   const token = req.header('x-auth-token');
 
   try {
     let userId = null;
-    if (token) {
+    if (token && !isOffline) {
       try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         userId = decoded.user.id;
@@ -70,7 +70,8 @@ router.post('/', async (req, res) => {
       hospital,
       patientName,
       contactNumber,
-      user: userId // Optional
+      user: userId, // Optional
+      isOffline: isOffline || false,
     });
 
     const booking = await newBooking.save();

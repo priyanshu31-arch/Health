@@ -24,7 +24,10 @@ L.Marker.prototype.options.icon = DefaultIcon;
 function RecenterMap({ lat, lon }: { lat: number; lon: number }) {
     const map = useMap();
     useEffect(() => {
-        map.setView([lat, lon]);
+        map.flyTo([lat, lon], map.getZoom(), {
+            animate: true,
+            duration: 1.5 // Smooth flight
+        });
     }, [lat, lon, map]);
     return null;
 }

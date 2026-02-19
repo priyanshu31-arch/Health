@@ -173,6 +173,7 @@ interface BedBookingData {
     hospital: string;
     patientName: string;
     contactNumber: string;
+    isOffline?: boolean;
 }
 
 interface AmbulanceBookingData {

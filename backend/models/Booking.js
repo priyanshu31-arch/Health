@@ -45,6 +45,10 @@ const BookingSchema = new mongoose.Schema({
   pickupLon: {
     type: Number,
   },
+  isOffline: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 module.exports = mongoose.model('Booking', BookingSchema);

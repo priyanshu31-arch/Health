@@ -75,8 +75,8 @@ function RecenterMap({ lat, lon }: { lat: number; lon: number }) {
 }
 
 interface MapProps {
-    ambulanceLat?: number;
-    ambulanceLon?: number;
+    lat?: number;
+    lon?: number;
     vehicleNumber?: string;
     status: string;
     pickupLat?: number;
@@ -93,6 +93,10 @@ export default function LeafletMap({
     const [routePositions, setRoutePositions] = useState<[number, number][]>([]);
     const lastFetchPos = useRef<{ lat: number; lon: number } | null>(null);
 
+    // Determine Map Center: Priority -> Ambulance -> Pickup -> Drop -> Default
+    const centerLat = lat || pickupLat || dropLat || 20.5937;
+    const centerLon = lon || pickupLon || dropLon || 78.9629;
+
     // Function to calculate distance (simple approximation)
     const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
         const R = 6371e3; // metres
@@ -108,7 +112,7 @@ export default function LeafletMap({
     };
 
     useEffect(() => {
-        if (!pickupLat || !pickupLon || !ambulanceLat || !ambulanceLon) return;
+        if (!pickupLat || !pickupLon || !lat || !lon) return;
 
         // Threshold of 150m prevents route flickering but stays close enough
         if (lastFetchPos.current) {
@@ -117,7 +121,7 @@ export default function LeafletMap({
         }
 
         const fetchRoute = async () => {
-            const start = `${ambulanceLon},${ambulanceLat}`;
+            const start = `${lon},${lat}`;
             const pickup = `${pickupLon},${pickupLat}`;
             let waypoints = `${start};${pickup}`;
 
@@ -134,7 +138,7 @@ export default function LeafletMap({
                     const coords = data.routes[0].geometry.coordinates;
                     const positions = coords.map((c: number[]) => [c[1], c[0]] as [number, number]);
                     setRoutePositions(positions);
-                    lastFetchPos.current = { lat: ambulanceLat, lon: ambulanceLon };
+                    lastFetchPos.current = { lat, lon };
                 }
             } catch (error) {
                 console.error("OSRM Error:", error);
@@ -142,16 +146,16 @@ export default function LeafletMap({
         };
 
         fetchRoute();
-    }, [ambulanceLat, ambulanceLon, pickupLat, pickupLon, dropLat, dropLon]);
+    }, [lat, lon, pickupLat, pickupLon, dropLat, dropLon]);
 
     // Create a smooth combined path from current location to the OSRM route
-    const livePath: [number, number][] = routePositions.length > 0
+    const livePath: [number, number][] = (routePositions.length > 0 && lat && lon)
         ? [[lat, lon], ...routePositions]
         : [];
 
     return (
         <MapContainer
-            center={[lat, lon]}
+            center={[centerLat, centerLon]}
             zoom={15} // Slightly closer zoom for tracking
             style={{ width: '100%', height: '100%' }}
             zoomControl={false}
@@ -176,12 +180,14 @@ export default function LeafletMap({
             ) : null}
 
             {/* Ambulance Marker */}
-            <Marker position={[lat, lon]} icon={ambulanceIcon}>
-                <Popup>
-                    <b>Ambulance {vehicleNumber || ''}</b> <br />
-                    {status}
-                </Popup>
-            </Marker>
+            {lat && lon && (
+                <Marker position={[lat, lon]} icon={ambulanceIcon}>
+                    <Popup>
+                        <b>Ambulance {vehicleNumber || ''}</b> <br />
+                        {status}
+                    </Popup>
+                </Marker>
+            )}
 
             {/* Destination Marker */}
             {dropLat && dropLon ? (

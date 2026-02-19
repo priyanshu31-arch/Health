@@ -108,8 +108,8 @@ export default function TrackingScreenWeb() {
                 {isClient && (ambLat || pLat) ? (
                     <Suspense fallback={<View style={styles.center}><ActivityIndicator size="large" color={COLORS.primary} /></View>}>
                         <LeafletMap
-                            ambulanceLat={ambLat}
-                            ambulanceLon={ambLon}
+                            lat={ambLat}
+                            lon={ambLon}
                             vehicleNumber={vehicleNumber as string}
                             status={status}
                             pickupLat={pLat}

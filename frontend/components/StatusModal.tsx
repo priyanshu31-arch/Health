@@ -26,7 +26,7 @@ export default function StatusModal({
 
     const isSuccess = type === 'success';
     const iconName = isSuccess ? 'checkmark-circle' : 'alert-circle';
-    const color = isSuccess ? COLORS.success : COLORS.error;
+    const color = isSuccess ? COLORS.primary : COLORS.error;
     const defaultTitle = isSuccess ? 'Success' : 'Error';
 
     return (

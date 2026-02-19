@@ -112,8 +112,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             const userData = await import('@/app/config/api.config').then(m => m.api.getProfile());
             await AsyncStorage.setItem('user', JSON.stringify(userData));
             setUser(userData);
-        } catch (error) {
-            console.error('Refetch user error', error);
+        } catch (error: any) {
+            console.error('Refetch user error:', error);
+            if (error.message.includes('expired') || error.message.includes('login')) {
+                logout();
+            }
         }
     };
 

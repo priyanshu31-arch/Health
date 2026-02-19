@@ -16,6 +16,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AuthProvider } from '@/context/AuthContext';
 import { NotificationProvider } from '@/context/NotificationContext';
 
+import Toast from 'react-native-toast-message';
+
 SplashScreen.preventAutoHideAsync();
 
 export const unstable_settings = {
@@ -59,6 +61,7 @@ export default function RootLayout() {
         </AuthProvider>
       </NotificationProvider>
       <StatusBar style="auto" />
+      <Toast />
     </ThemeProvider>
   );
 }

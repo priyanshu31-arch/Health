@@ -18,28 +18,42 @@ cloudinary.config({
 const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: {
-        folder: 'health-hub/hospitals', // Folder name in Cloudinary
-        allowed_formats: ['jpg', 'png', 'jpeg', 'gif'],
-        public_id: (req, file) => `hospital-${Date.now()}-${file.originalname.split('.')[0]}`
+        folder: 'health-hub/uploads',
+        allowed_formats: ['jpg', 'png', 'jpeg', 'gif', 'webp'],
+        public_id: (req, file) => `file-${Date.now()}-${Math.round(Math.random() * 1E9)}`
     }
 });
 
-const upload = multer({ storage: storage });
+const upload = multer({
+    storage: storage,
+    limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+});
 
 // @route   POST /api/upload
 // @desc    Upload an image to Cloudinary
-// @access  Public (or Private if needed)
-router.post('/', upload.single('image'), (req, res) => {
-    try {
-        if (!req.file) {
-            return res.status(400).json({ msg: 'No file uploaded' });
+// @access  Public
+router.post('/', (req, res) => {
+    upload.single('image')(req, res, function (err) {
+        if (err instanceof multer.MulterError) {
+            console.error('Multer Error:', err);
+            return res.status(400).json({ msg: `Upload error: ${err.message}` });
+        } else if (err) {
+            console.error('Upload Error:', err);
+            return res.status(400).json({ msg: err.message || 'An error occurred during upload' });
         }
-        // Cloudinary returns the secure URL in req.file.path
-        res.json({ url: req.file.path });
-    } catch (err) {
-        console.error(err);
-        res.status(500).send('Server Error');
-    }
+
+        try {
+            if (!req.file) {
+                return res.status(400).json({ msg: 'No file selected' });
+            }
+            // Cloudinary returns the secure URL in req.file.path
+            console.log('File uploaded to Cloudinary:', req.file.path);
+            res.json({ url: req.file.path });
+        } catch (error) {
+            console.error('Server save error:', error);
+            res.status(500).send('Server Error');
+        }
+    });
 });
 
 module.exports = router;

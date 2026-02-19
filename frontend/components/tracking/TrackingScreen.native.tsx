@@ -1,12 +1,8 @@
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState, useRef } from 'react';
-<<<<<<< HEAD
-import MapView, { Marker, PROVIDER_DEFAULT, AnimatedRegion } from 'react-native-maps';
-=======
-import MapView, { Marker, PROVIDER_DEFAULT, Polyline } from 'react-native-maps';
->>>>>>> 110bde4635d92b6879d87d21a81d24140acb8f48
-import io from 'socket.io-client/dist/socket.io.js';
+import MapView, { Marker, PROVIDER_DEFAULT, AnimatedRegion, Polyline } from 'react-native-maps';
+import { io } from 'socket.io-client';
 import * as Location from 'expo-location';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -16,109 +12,93 @@ import { ThemedText } from '../themed-text';
 import { ThemedButton } from '../ui/ThemedButton';
 
 export default function TrackingScreen() {
+    const params = useLocalSearchParams();
     const {
         bookingId, role, patientName, vehicleNumber,
         pickupLat, pickupLon, dropLat, dropLon, dropAddress
-    } = useLocalSearchParams();
+    } = params;
+
     const router = useRouter();
     const mapRef = useRef<MapView>(null);
 
+    // Parse params safely
+    const pLat = pickupLat ? parseFloat(pickupLat as string) : 12.9716;
+    const pLon = pickupLon ? parseFloat(pickupLon as string) : 77.5946;
+    const dLat = dropLat ? parseFloat(dropLat as string) : undefined;
+    const dLon = dropLon ? parseFloat(dropLon as string) : undefined;
+
     // Initial region (fallback to Bangalore)
     const [region] = useState({
-        latitude: pickupLat ? parseFloat(pickupLat as string) : 12.9716,
-        longitude: pickupLon ? parseFloat(pickupLon as string) : 77.5946,
-        latitudeDelta: 0.05,
-        longitudeDelta: 0.05,
+        latitude: pLat,
+        longitude: pLon,
+        latitudeDelta: 0.015,
+        longitudeDelta: 0.015,
     });
 
-<<<<<<< HEAD
-    const [status, setStatus] = useState('Waiting for ambulance location...');
+    const [status, setStatus] = useState('Connecting to tracking service...');
     const [socket, setSocket] = useState<any>(null);
     const [isAcknowledged, setIsAcknowledged] = useState(false);
+    const [connected, setConnected] = useState(false);
     const [permissionStatus, setPermissionStatus] = useState<Location.PermissionStatus | 'undetermined'>('undetermined');
     const [remoteLocation, setRemoteLocation] = useState<any>(null);
 
     // Animated Region for Ambulance
     const [ambulanceCoordinate] = useState(new AnimatedRegion({
-        latitude: pickupLat ? parseFloat(pickupLat as string) : 12.9716,
-        longitude: pickupLon ? parseFloat(pickupLon as string) : 77.5946,
-        latitudeDelta: 0.05,
-        longitudeDelta: 0.05,
+        latitude: pLat,
+        longitude: pLon,
+        latitudeDelta: 0.015,
+        longitudeDelta: 0.015,
     }));
-=======
-    const [remoteLocation, setRemoteLocation] = useState<any>(null);
-    const [status, setStatus] = useState('Connecting to ambulance...');
-    const [socket, setSocket] = useState<any>(null);
-    const [isAcknowledged, setIsAcknowledged] = useState(false);
-    const [connected, setConnected] = useState(false);
->>>>>>> 110bde4635d92b6879d87d21a81d24140acb8f48
-
-    // Parse params
-    const pLat = pickupLat ? parseFloat(pickupLat as string) : undefined;
-    const pLon = pickupLon ? parseFloat(pickupLon as string) : undefined;
-    const dLat = dropLat ? parseFloat(dropLat as string) : undefined;
-    const dLon = dropLon ? parseFloat(dropLon as string) : undefined;
 
     useEffect(() => {
         if (!bookingId) return;
 
-        // Init Socket
+        // Init Socket with stable v4 import
         const newSocket = io(SOCKET_URL, {
             transports: ['websocket'],
             reconnection: true,
+            autoConnect: true
         });
         setSocket(newSocket);
 
         newSocket.on('connect', () => {
-            console.log('Socket Connected');
+            console.log('Live Tracking: Connected');
             setConnected(true);
             newSocket.emit('join_booking', bookingId);
-            setStatus('Joined booking session');
+            setStatus('Joined tracking session');
+        });
+
+        newSocket.on('connect_error', (error) => {
+            console.error('Socket Connection Error:', error);
+            setStatus('Connection failed. Retrying...');
         });
 
         newSocket.on('disconnect', () => {
-            console.log('Socket Disconnected');
+            console.log('Live Tracking: Disconnected');
             setConnected(false);
             setStatus('Connection lost. Reconnecting...');
         });
 
         newSocket.on('receive_location', (loc: any) => {
             console.log('Received Remote Location:', loc);
-            if (loc && loc.latitude && loc.longitude) {
+            if (loc && (loc.latitude || loc.lat) && (loc.longitude || loc.lng)) {
                 const newLoc = {
-                    latitude: parseFloat(loc.latitude),
-                    longitude: parseFloat(loc.longitude),
+                    latitude: parseFloat(loc.latitude || loc.lat),
+                    longitude: parseFloat(loc.longitude || loc.lng),
                 };
                 setRemoteLocation(newLoc);
 
-<<<<<<< HEAD
-                // Animate marker
-                if (Platform.OS === 'android') {
-                    // Android needs a duration
-                    (ambulanceCoordinate as any).timing({
-                        latitude: newLoc.latitude,
-                        longitude: newLoc.longitude,
-                        duration: 1000,
-                        useNativeDriver: false
-                    }).start();
-                } else {
-                    (ambulanceCoordinate as any).timing({
-                        latitude: newLoc.latitude,
-                        longitude: newLoc.longitude,
-                        duration: 1000,
-                        useNativeDriver: false
-                    }).start();
-                }
-=======
-                // Smoothly animate to updated location
-                mapRef.current?.animateToRegion({
-                    ...newLoc,
-                    latitudeDelta: 0.01,
-                    longitudeDelta: 0.01,
-                }, 1000);
+                // Animate marker with stability
+                const duration = 1500; // Slightly longer for smoothness
+
+                // AnimatedRegion.timing doesn't take useNativeDriver: true
+                ambulanceCoordinate.timing({
+                    latitude: newLoc.latitude,
+                    longitude: newLoc.longitude,
+                    duration,
+                } as any).start();
 
                 setStatus('Tracking live location');
->>>>>>> 110bde4635d92b6879d87d21a81d24140acb8f48
             }
         });
 
@@ -129,7 +109,7 @@ export default function TrackingScreen() {
         });
 
         return () => {
-            newSocket.disconnect();
+            if (newSocket) newSocket.disconnect();
         };
     }, [bookingId]);
 
@@ -141,59 +121,44 @@ export default function TrackingScreen() {
 
     // Location Tracking (Self)
     useEffect(() => {
-        let subscription: any;
-<<<<<<< HEAD
+        let isSubscribed = true;
+        let subscription: any = null;
 
         const startTracking = async () => {
             const status = await requestLocationPermission();
             if (status !== 'granted') return;
-=======
-        if (!socket || !connected) return;
 
-        (async () => {
-            let { status: permissionStatus } = await Location.requestForegroundPermissionsAsync();
-            if (permissionStatus !== 'granted') return;
->>>>>>> 110bde4635d92b6879d87d21a81d24140acb8f48
+            if (!socket || !connected) return;
 
             subscription = await Location.watchPositionAsync(
                 {
                     accuracy: Location.Accuracy.High,
-<<<<<<< HEAD
-                    timeInterval: 2000, // Faster updates (2s)
-                    distanceInterval: 5, // Smaller distance (5m)
-=======
-                    timeInterval: 2000, // Faster updates for smoother tracking
-                    distanceInterval: 5,
->>>>>>> 110bde4635d92b6879d87d21a81d24140acb8f48
+                    timeInterval: 2000,
+                    distanceInterval: 10,
                 },
                 (loc) => {
+                    if (!isSubscribed) return;
                     const { latitude, longitude } = loc.coords;
 
-<<<<<<< HEAD
-                    // Only emit if Admin (or Driver in future)
-                    if (role === 'admin') {
-                        if (socket) {
+                    // Support for Driver role or Admin to share their location
+                    if (role === 'admin' || role === 'driver') {
+                        if (socket && socket.connected) {
                             socket.emit('send_location', {
                                 bookingId,
                                 location: { latitude, longitude }
                             });
                         }
-=======
-                    // Support for Driver role or Admin to share their location
-                    if (role === 'admin' || role === 'driver') {
-                        socket.emit('send_location', {
-                            bookingId,
-                            location: { latitude, longitude }
-                        });
->>>>>>> 110bde4635d92b6879d87d21a81d24140acb8f48
                     }
                 }
             );
         };
 
-        startTracking();
+        if (connected) {
+            startTracking();
+        }
 
         return () => {
+            isSubscribed = false;
             if (subscription) subscription.remove();
         };
     }, [socket, connected, role, bookingId]);
@@ -201,17 +166,17 @@ export default function TrackingScreen() {
     if (permissionStatus !== 'granted' && permissionStatus !== 'undetermined') {
         return (
             <View style={styles.center}>
-                <Ionicons name="location-outline" size={64} color="red" />
-                <Text style={styles.permissionText}>Location Permission Needed</Text>
+                <Ionicons name="location-outline" size={64} color={COLORS.error} />
+                <Text style={styles.permissionText}>Location Needed</Text>
                 <Text style={styles.permissionSubText}>We need your location to track the ambulance accurately.</Text>
-                <TouchableOpacity style={styles.permissionButton} onPress={requestLocationPermission}>
-                    <Text style={styles.permissionButtonText}>Enable Location</Text>
+                <ThemedButton
+                    title="Enable Location"
+                    onPress={requestLocationPermission}
+                    style={{ paddingHorizontal: 40 }}
+                />
+                <TouchableOpacity style={{ marginTop: 20 }} onPress={() => router.back()}>
+                    <Text style={{ color: COLORS.textLight }}>Go Back</Text>
                 </TouchableOpacity>
-                <View style={styles.footer}>
-                    <TouchableOpacity style={[styles.ackButton, { backgroundColor: '#333' }]} onPress={() => router.back()}>
-                        <Text style={styles.ackButtonText}>Go Back</Text>
-                    </TouchableOpacity>
-                </View>
             </View>
         );
     }
@@ -220,9 +185,9 @@ export default function TrackingScreen() {
         if (socket && connected) {
             socket.emit('send_ack', bookingId);
             setIsAcknowledged(true);
-            setStatus('Starting trip...');
+            setStatus('Ambulance is dispatching...');
         } else {
-            Alert.alert('Error', 'Socket not connected. Please wait.');
+            Alert.alert('Connection issue', 'Not connected to server. Please wait.');
         }
     };
 
@@ -240,7 +205,7 @@ export default function TrackingScreen() {
                     <ThemedText style={styles.headerTitle}>Live Tracking</ThemedText>
                     <View style={styles.connectionStatus}>
                         <View style={[styles.statusDot, { backgroundColor: connected ? '#22C55E' : '#EF4444' }]} />
-                        <ThemedText style={styles.connectionText}>{connected ? 'Connected' : 'Offline'}</ThemedText>
+                        <ThemedText style={styles.connectionText}>{connected ? 'Online' : 'Offline'}</ThemedText>
                     </View>
                 </View>
             </View>
@@ -256,16 +221,10 @@ export default function TrackingScreen() {
             >
                 {/* Ambulance Marker (Remote) */}
                 {remoteLocation && (
-<<<<<<< HEAD
                     <Marker.Animated
                         coordinate={ambulanceCoordinate as any}
                         title="Ambulance"
                         description={vehicleNumber as string || "Ambulance"}
-=======
-                    <Marker
-                        coordinate={remoteLocation}
-                        anchor={{ x: 0.5, y: 0.5 }}
->>>>>>> 110bde4635d92b6879d87d21a81d24140acb8f48
                     >
                         <View style={styles.ambulanceMarker}>
                             <MaterialCommunityIcons name="ambulance" size={22} color="white" />
@@ -277,7 +236,7 @@ export default function TrackingScreen() {
                 {pLat && pLon && (
                     <Marker
                         coordinate={{ latitude: pLat, longitude: pLon }}
-                        title="Pickup Point"
+                        title="Patient Location"
                     >
                         <View style={[styles.pointMarker, { borderColor: '#22C55E' }]}>
                             <View style={[styles.pointInner, { backgroundColor: '#22C55E' }]} />
@@ -289,7 +248,7 @@ export default function TrackingScreen() {
                 {dLat && dLon && (
                     <Marker
                         coordinate={{ latitude: dLat, longitude: dLon }}
-                        title="Hospital"
+                        title="Destination Hospital"
                     >
                         <View style={[styles.pointMarker, { borderColor: COLORS.primary }]}>
                             <View style={[styles.pointInner, { backgroundColor: COLORS.primary }]} />
@@ -297,13 +256,16 @@ export default function TrackingScreen() {
                     </Marker>
                 )}
 
-                {/* Simple Path if locations available */}
-                {remoteLocation && pLat && pLon && (
+                {/* Live Path */}
+                {remoteLocation && (
                     <Polyline
-                        coordinates={[remoteLocation, { latitude: pLat, longitude: pLon }]}
+                        coordinates={[
+                            remoteLocation,
+                            { latitude: pLat, longitude: pLon }
+                        ]}
                         strokeWidth={3}
-                        strokeColor={COLORS.primary + '80'}
-                        lineDashPattern={[5, 5]}
+                        strokeColor={COLORS.primary}
+                        lineDashPattern={[5, 10]}
                     />
                 )}
             </MapView>
@@ -314,12 +276,12 @@ export default function TrackingScreen() {
 
                 <View style={styles.infoRow}>
                     <View style={styles.infoBox}>
-                        <ThemedText style={styles.label}>Ambulance</ThemedText>
-                        <ThemedText style={styles.value}>{vehicleNumber || 'Finding...'}</ThemedText>
+                        <ThemedText style={styles.label}>Ambulance ID</ThemedText>
+                        <ThemedText style={styles.value}>{vehicleNumber || 'Pending'}</ThemedText>
                     </View>
                     <View style={styles.divider} />
                     <View style={styles.infoBox}>
-                        <ThemedText style={styles.label}>Patient</ThemedText>
+                        <ThemedText style={styles.label}>Patient Name</ThemedText>
                         <ThemedText style={styles.value}>{patientName || 'Emergency'}</ThemedText>
                     </View>
                 </View>
@@ -331,22 +293,20 @@ export default function TrackingScreen() {
 
                 {role === 'admin' && !isAcknowledged && (
                     <ThemedButton
-                        title="Acknowledge & Start Trip"
+                        title="Acknowledge & Dispatch"
                         onPress={sendAck}
                         style={styles.actionBtn}
                         variant="primary"
                     />
                 )}
 
-                {role === 'user' && (
-                    <ThemedButton
-                        title="Call Emergency"
-                        onPress={() => Alert.alert('Call', 'Connecting to driver...')}
-                        variant="outline"
-                        style={styles.actionBtn}
-                        icon={<Ionicons name="call" size={18} color={COLORS.primary} style={{ marginRight: 8 }} />}
-                    />
-                )}
+                <ThemedButton
+                    title={role === 'user' ? "Call Driver" : "Contact Patient"}
+                    onPress={() => Alert.alert('Call', 'Dialing phone number...')}
+                    variant="outline"
+                    style={[styles.actionBtn, (role === 'admin' && !isAcknowledged) && { marginTop: 12 }]}
+                    icon={<Ionicons name="call" size={18} color={COLORS.primary} />}
+                />
             </View>
         </View>
     );
@@ -413,10 +373,10 @@ const styles = StyleSheet.create({
     footer: {
         backgroundColor: COLORS.white,
         padding: 24,
-        paddingTop: 12,
+        paddingBottom: Platform.OS === 'ios' ? 40 : 24,
         borderTopLeftRadius: 32,
         borderTopRightRadius: 32,
-        ...SHADOWS.medium,
+        ...SHADOWS.large,
     },
     dragHandle: {
         width: 40,
@@ -454,7 +414,7 @@ const styles = StyleSheet.create({
     statusIndicator: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: COLORS.background,
+        backgroundColor: '#F8FAFC',
         padding: 12,
         borderRadius: 12,
         marginBottom: 24,
@@ -468,43 +428,9 @@ const styles = StyleSheet.create({
         width: '100%',
     },
     ambulanceMarker: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-<<<<<<< HEAD
-        borderWidth: 1,
-        borderColor: '#ccc'
-    },
-    center: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 20
-    },
-    permissionText: {
-        fontSize: 22,
-        fontWeight: 'bold',
-        marginTop: 20,
-        marginBottom: 10
-    },
-    permissionSubText: {
-        fontSize: 16,
-        color: '#666',
-        textAlign: 'center',
-        marginBottom: 30
-    },
-    permissionButton: {
-        backgroundColor: '#EF4444',
-        paddingHorizontal: 30,
-        paddingVertical: 15,
-        borderRadius: 25
-    },
-    permissionButtonText: {
-        color: 'white',
-        fontSize: 16,
-        fontWeight: 'bold'
-    }
-=======
+        width: 44,
+        height: 44,
+        borderRadius: 22,
         backgroundColor: '#EF4444',
         justifyContent: 'center',
         alignItems: 'center',
@@ -513,9 +439,9 @@ const styles = StyleSheet.create({
         ...SHADOWS.medium,
     },
     pointMarker: {
-        width: 20,
-        height: 20,
-        borderRadius: 10,
+        width: 22,
+        height: 22,
+        borderRadius: 11,
         backgroundColor: 'white',
         justifyContent: 'center',
         alignItems: 'center',
@@ -526,5 +452,26 @@ const styles = StyleSheet.create({
         height: 10,
         borderRadius: 5,
     },
->>>>>>> 110bde4635d92b6879d87d21a81d24140acb8f48
+    center: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 24,
+        backgroundColor: COLORS.white
+    },
+    permissionText: {
+        fontSize: 22,
+        fontFamily: FONTS.bold,
+        marginTop: 20,
+        marginBottom: 10,
+        color: COLORS.text
+    },
+    permissionSubText: {
+        fontSize: 16,
+        color: COLORS.textLight,
+        textAlign: 'center',
+        marginBottom: 30,
+        fontFamily: FONTS.regular,
+        lineHeight: 24
+    }
 });

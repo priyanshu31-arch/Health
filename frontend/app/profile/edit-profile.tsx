@@ -18,9 +18,11 @@ import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '@/context/AuthContext';
 import { api, API_BASE_URL } from '@/app/config/api.config';
+import Toast from 'react-native-toast-message';
 import { COLORS, SHADOWS } from '@/constants/theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemedButton } from '@/components/ui/ThemedButton';
+import StatusModal from '@/components/StatusModal';
 
 export default function EditProfile() {
   const { user, updateUser } = useAuth();
@@ -37,6 +39,11 @@ export default function EditProfile() {
   const [isLoading, setIsLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [localImageUri, setLocalImageUri] = useState<string | null>(null);
+
+  // Status Modal State
+  const [modalType, setModalType] = useState<'success' | 'error'>('success');
+  const [modalMessage, setModalMessage] = useState('');
+  const [showStatusModal, setShowStatusModal] = useState(false);
 
   // Robust initialization: Force load from Storage and Context
   useEffect(() => {
@@ -123,9 +130,27 @@ export default function EditProfile() {
           });
         }
 
-        const uploadRes = await api.uploadImage(formData);
-        finalPhoto = uploadRes.url;
-        setProfilePhoto(finalPhoto);
+        try {
+          const uploadRes = await api.uploadImage(formData);
+          finalPhoto = uploadRes.url;
+          setProfilePhoto(finalPhoto);
+        } catch (uploadError: any) {
+          console.error('Update Profile Image Error:', uploadError);
+          setUploading(false);
+
+          const proceed = await new Promise((resolve) => {
+            Alert.alert(
+              'Upload Failed',
+              `Could not upload new photo: ${uploadError.message}. Update other fields anyway?`,
+              [
+                { text: 'Stop', onPress: () => resolve(false), style: 'cancel' },
+                { text: 'Update Profile only', onPress: () => resolve(true) }
+              ]
+            );
+          });
+
+          if (!proceed) return;
+        }
         setUploading(false);
       }
 
@@ -144,12 +169,14 @@ export default function EditProfile() {
       // 3. Update global AuthContext and return to profile
       await updateUser(updatedUserRes);
 
-      Alert.alert('Success', 'Profile updated successfully!', [
-        { text: 'OK', onPress: () => router.push('/(tabs)/profile') }
-      ]);
+      setModalType('success');
+      setModalMessage('Your profile has been updated successfully.');
+      setShowStatusModal(true);
     } catch (error: any) {
       console.error('Save Error:', error);
-      Alert.alert('Error', error.msg || error.message || 'Failed to save profile. Please check your connection.');
+      setModalType('error');
+      setModalMessage(error.msg || error.message || 'Failed to save changes. Please try again.');
+      setShowStatusModal(true);
     } finally {
       setIsLoading(false);
       setUploading(false);
@@ -169,7 +196,7 @@ export default function EditProfile() {
     ? { uri: localImageUri }
     : profilePhoto
       ? { uri: `${API_BASE_URL}${profilePhoto}` }
-      : { uri: 'https://i.pravatar.cc/300' };
+      : { uri: `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}&background=0891B2&color=fff` };
 
   return (
     <KeyboardAvoidingView
@@ -293,6 +320,18 @@ export default function EditProfile() {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      <StatusModal
+        visible={showStatusModal}
+        type={modalType}
+        message={modalMessage}
+        onClose={() => {
+          setShowStatusModal(false);
+          if (modalType === 'success') {
+            router.back();
+          }
+        }}
+      />
     </KeyboardAvoidingView>
   );
 }

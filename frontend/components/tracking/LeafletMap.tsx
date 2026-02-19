@@ -29,7 +29,10 @@ const hospitalIcon = L.icon({
 function RecenterMap({ lat, lon }: { lat: number; lon: number }) {
     const map = useMap();
     useEffect(() => {
-        map.panTo([lat, lon], { animate: true, duration: 1.5 });
+        map.flyTo([lat, lon], map.getZoom(), {
+            animate: true,
+            duration: 1.5 // Smooth flight
+        });
     }, [lat, lon, map]);
     return null;
 }

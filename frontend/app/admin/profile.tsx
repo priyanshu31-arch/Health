@@ -1,4 +1,6 @@
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Platform } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Platform, Image } from 'react-native';
+import * as Location from 'expo-location';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
@@ -19,6 +21,9 @@ export default function ManageProfile() {
     const [latitude, setLatitude] = useState('');
     const [longitude, setLongitude] = useState('');
     const [bio, setBio] = useState('');
+    const [photo, setPhoto] = useState('');
+    const [newImage, setNewImage] = useState<any>(null);
+    const [locationLoading, setLocationLoading] = useState(false);
 
     useEffect(() => {
         fetchData();
@@ -31,16 +36,68 @@ export default function ManageProfile() {
             if (data && data.hospital) {
                 setHospital(data.hospital);
                 setName(data.hospital.name);
-                setAddress(data.hospital.address || ''); // New field
-                setLatitude(data.hospital.latitude ? data.hospital.latitude.toString() : ''); // New field
-                setLongitude(data.hospital.longitude ? data.hospital.longitude.toString() : ''); // New field
+                setAddress(data.hospital.address || '');
+                setLatitude(data.hospital.latitude ? data.hospital.latitude.toString() : '');
+                setLongitude(data.hospital.longitude ? data.hospital.longitude.toString() : '');
                 setBio(data.hospital.bio || '');
+                setPhoto(data.hospital.photo || '');
             }
         } catch (error) {
             console.error(error);
             Alert.alert('Error', 'Failed to fetch hospital details');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleUseCurrentLocation = async () => {
+        try {
+            setLocationLoading(true);
+            const { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== 'granted') {
+                if (Platform.OS === 'web') alert('Permission to access location was denied');
+                else Alert.alert('Permission Denied', 'Permission to access location was denied');
+                return;
+            }
+
+            const location = await Location.getCurrentPositionAsync({});
+            const { latitude, longitude } = location.coords;
+
+            setLatitude(latitude.toString());
+            setLongitude(longitude.toString());
+
+            // Reverse Geocode
+            const reverseGeocode = await Location.reverseGeocodeAsync({ latitude, longitude });
+            if (reverseGeocode.length > 0) {
+                const addr = reverseGeocode[0];
+                const formattedAddress = `${addr.name || ''} ${addr.street || ''}, ${addr.city || ''}, ${addr.region || ''} ${addr.postalCode || ''}`.trim().replace(/\s+/g, ' ');
+                setAddress(formattedAddress);
+            }
+
+            if (Platform.OS === 'web') alert('Location updated!');
+            else Alert.alert('Success', 'Location, Coordinates and Address Updated!');
+
+        } catch (error) {
+            console.error(error);
+            if (Platform.OS === 'web') alert('Failed to fetch location');
+            else Alert.alert('Error', 'Failed to fetch location');
+        } finally {
+            setLocationLoading(false);
+        }
+    };
+
+    const pickImage = async () => {
+        // No permissions request is necessary for launching the image library
+        let result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [4, 3],
+            quality: 0.5,
+        });
+
+        if (!result.canceled) {
+            setNewImage(result.assets[0]);
+            setPhoto(result.assets[0].uri);
         }
     };
 
@@ -53,12 +110,38 @@ export default function ManageProfile() {
 
         try {
             setSubmitting(true);
+            let photoUrl = photo;
+
+            if (newImage) {
+                // Upload new image
+                const formData = new FormData();
+                if (Platform.OS === 'web') {
+                    // For web, we need to convert the URI to a Blob/File
+                    const response = await fetch(newImage.uri);
+                    const blob = await response.blob();
+                    formData.append('image', blob, 'profile.jpg');
+                } else {
+                    // For native
+                    formData.append('image', {
+                        uri: newImage.uri,
+                        type: 'image/jpeg',
+                        name: 'profile.jpg',
+                    } as any);
+                }
+
+                const uploadResponse = await api.uploadImage(formData);
+                if (uploadResponse && uploadResponse.url) {
+                    photoUrl = uploadResponse.url;
+                }
+            }
+
             const updates = {
                 name,
                 address,
                 latitude: parseFloat(latitude),
                 longitude: parseFloat(longitude),
-                bio
+                bio,
+                photo: photoUrl
             };
 
             await api.updateHospital(hospital._id, updates);
@@ -95,6 +178,23 @@ export default function ManageProfile() {
 
             <ScrollView contentContainerStyle={styles.content}>
                 <View style={styles.card}>
+                    {/* Image Picker */}
+                    <View style={styles.imageContainer}>
+                        <TouchableOpacity onPress={pickImage}>
+                            {photo ? (
+                                <Image source={{ uri: photo }} style={styles.profileImage} />
+                            ) : (
+                                <View style={styles.placeholderImage}>
+                                    <Ionicons name="camera" size={40} color={COLORS.textLight} />
+                                    <Text style={styles.uploadText}>Upload Photo</Text>
+                                </View>
+                            )}
+                            <View style={styles.editIcon}>
+                                <Ionicons name="pencil" size={16} color="#fff" />
+                            </View>
+                        </TouchableOpacity>
+                    </View>
+
                     <View style={styles.inputGroup}>
                         <ThemedText style={styles.label}>Hospital Name</ThemedText>
                         <TextInput
@@ -115,6 +215,21 @@ export default function ManageProfile() {
                             multiline
                         />
                     </View>
+
+                    <TouchableOpacity
+                        style={styles.locationBtn}
+                        onPress={handleUseCurrentLocation}
+                        disabled={locationLoading}
+                    >
+                        {locationLoading ? (
+                            <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                            <>
+                                <Ionicons name="location" size={20} color="#fff" />
+                                <ThemedText style={styles.locationBtnText}>Use Current Location</ThemedText>
+                            </>
+                        )}
+                    </TouchableOpacity>
 
                     <View style={styles.row}>
                         <View style={[styles.inputGroup, { flex: 1 }]}>
@@ -206,6 +321,43 @@ const styles = StyleSheet.create({
         ...SHADOWS.small,
         gap: 16
     },
+    imageContainer: {
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+    profileImage: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        borderWidth: 2,
+        borderColor: COLORS.primary,
+    },
+    placeholderImage: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        backgroundColor: '#f1f5f9',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: '#cbd5e1',
+        borderStyle: 'dashed',
+    },
+    uploadText: {
+        fontSize: 10,
+        color: COLORS.textLight,
+        marginTop: 4,
+    },
+    editIcon: {
+        position: 'absolute',
+        bottom: 0,
+        right: 0,
+        backgroundColor: COLORS.primary,
+        padding: 6,
+        borderRadius: 12,
+        borderWidth: 2,
+        borderColor: '#fff',
+    },
     inputGroup: {
         gap: 8
     },
@@ -250,5 +402,20 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontWeight: 'bold',
         fontSize: 16
+    },
+    locationBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: COLORS.secondary, // Blue/Gray
+        padding: 12,
+        borderRadius: 12,
+        marginVertical: 8,
+        gap: 8
+    },
+    locationBtnText: {
+        color: '#fff',
+        fontWeight: '600',
+        fontSize: 14
     }
 });

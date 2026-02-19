@@ -26,6 +26,12 @@ export default function ManageBedsScreen() {
     const [newBedNumber, setNewBedNumber] = useState('');
     const [submitting, setSubmitting] = useState(false);
 
+    // Offline Booking State
+    const [offlineModalVisible, setOfflineModalVisible] = useState(false);
+    const [patientName, setPatientName] = useState('');
+    const [contactNumber, setContactNumber] = useState('');
+    const [selectedBedId, setSelectedBedId] = useState<string | null>(null);
+
     useEffect(() => {
         fetchData();
     }, []);
@@ -117,6 +123,45 @@ export default function ManageBedsScreen() {
         }
     };
 
+
+    const handleBookOffline = (bedId: string) => {
+        setSelectedBedId(bedId);
+        setOfflineModalVisible(true);
+    };
+
+    const confirmOfflineBooking = async () => {
+        if (!patientName || !contactNumber || !selectedBedId || !hospital) {
+            alert('Please fill all fields');
+            return;
+        }
+
+        try {
+            setSubmitting(true);
+            await api.bookBed({
+                bookingType: 'bed',
+                itemId: selectedBedId,
+                hospital: hospital._id,
+                patientName,
+                contactNumber,
+                isOffline: true,
+            });
+
+            if (Platform.OS === 'web') alert('Bed booked successfully (Offline)');
+            else Alert.alert('Success', 'Bed booked successfully (Offline)');
+
+            setOfflineModalVisible(false);
+            setPatientName('');
+            setContactNumber('');
+            setSelectedBedId(null);
+            fetchData();
+        } catch (error: any) {
+            console.error(error);
+            alert(error.message || 'Failed to book bed');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
     const renderItem = ({ item }: { item: any }) => (
         <View style={styles.card}>
             <View style={styles.cardContent}>
@@ -146,6 +191,14 @@ export default function ManageBedsScreen() {
                 >
                     <MaterialCommunityIcons name="delete" size={24} color={COLORS.error} />
                 </Pressable>
+                {item.isAvailable && (
+                    <TouchableOpacity
+                        style={styles.bookButton}
+                        onPress={() => handleBookOffline(item._id)}
+                    >
+                        <MaterialCommunityIcons name="account-plus" size={24} color={COLORS.primary} />
+                    </TouchableOpacity>
+                )}
             </View>
         </View>
     );
@@ -197,6 +250,55 @@ export default function ManageBedsScreen() {
                             </TouchableOpacity>
                             <TouchableOpacity style={styles.confirmButton} onPress={handleAddBed} disabled={submitting}>
                                 {submitting ? <ActivityIndicator color="#fff" /> : <ThemedText style={styles.confirmText}>Add Bed</ThemedText>}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Offline Booking Modal */}
+            <Modal
+                transparent={true}
+                visible={offlineModalVisible}
+                animationType="slide"
+                onRequestClose={() => setOfflineModalVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <ThemedText style={styles.modalTitle}>Book Offline</ThemedText>
+                        <ThemedText style={styles.subtitle}>Enter patient details for offline booking</ThemedText>
+
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Patient Name"
+                            value={patientName}
+                            onChangeText={setPatientName}
+                            placeholderTextColor={COLORS.textLight}
+                        />
+
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Contact Number"
+                            value={contactNumber}
+                            onChangeText={setContactNumber}
+                            placeholderTextColor={COLORS.textLight}
+                            keyboardType="phone-pad"
+                        />
+
+                        <View style={styles.modalActions}>
+                            <TouchableOpacity
+                                style={styles.cancelButton}
+                                onPress={() => {
+                                    setOfflineModalVisible(false);
+                                    setPatientName('');
+                                    setContactNumber('');
+                                    setSelectedBedId(null);
+                                }}
+                            >
+                                <ThemedText style={styles.cancelText}>Cancel</ThemedText>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.confirmButton} onPress={confirmOfflineBooking} disabled={submitting}>
+                                {submitting ? <ActivityIndicator color="#fff" /> : <ThemedText style={styles.confirmText}>Book Bed</ThemedText>}
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -306,6 +408,14 @@ const styles = StyleSheet.create({
     },
     deleteButton: {
         padding: 8,
+    },
+    bookButton: {
+        padding: 8,
+    },
+    subtitle: {
+        fontSize: 14,
+        color: COLORS.textLight,
+        marginBottom: 8,
     },
     cancelText: {
         fontWeight: '600',

@@ -1,7 +1,11 @@
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState, useRef } from 'react';
+<<<<<<< HEAD
+import MapView, { Marker, PROVIDER_DEFAULT, AnimatedRegion } from 'react-native-maps';
+=======
 import MapView, { Marker, PROVIDER_DEFAULT, Polyline } from 'react-native-maps';
+>>>>>>> 110bde4635d92b6879d87d21a81d24140acb8f48
 import io from 'socket.io-client/dist/socket.io.js';
 import * as Location from 'expo-location';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -27,11 +31,27 @@ export default function TrackingScreen() {
         longitudeDelta: 0.05,
     });
 
+<<<<<<< HEAD
+    const [status, setStatus] = useState('Waiting for ambulance location...');
+    const [socket, setSocket] = useState<any>(null);
+    const [isAcknowledged, setIsAcknowledged] = useState(false);
+    const [permissionStatus, setPermissionStatus] = useState<Location.PermissionStatus | 'undetermined'>('undetermined');
+    const [remoteLocation, setRemoteLocation] = useState<any>(null);
+
+    // Animated Region for Ambulance
+    const [ambulanceCoordinate] = useState(new AnimatedRegion({
+        latitude: pickupLat ? parseFloat(pickupLat as string) : 12.9716,
+        longitude: pickupLon ? parseFloat(pickupLon as string) : 77.5946,
+        latitudeDelta: 0.05,
+        longitudeDelta: 0.05,
+    }));
+=======
     const [remoteLocation, setRemoteLocation] = useState<any>(null);
     const [status, setStatus] = useState('Connecting to ambulance...');
     const [socket, setSocket] = useState<any>(null);
     const [isAcknowledged, setIsAcknowledged] = useState(false);
     const [connected, setConnected] = useState(false);
+>>>>>>> 110bde4635d92b6879d87d21a81d24140acb8f48
 
     // Parse params
     const pLat = pickupLat ? parseFloat(pickupLat as string) : undefined;
@@ -71,6 +91,25 @@ export default function TrackingScreen() {
                 };
                 setRemoteLocation(newLoc);
 
+<<<<<<< HEAD
+                // Animate marker
+                if (Platform.OS === 'android') {
+                    // Android needs a duration
+                    (ambulanceCoordinate as any).timing({
+                        latitude: newLoc.latitude,
+                        longitude: newLoc.longitude,
+                        duration: 1000,
+                        useNativeDriver: false
+                    }).start();
+                } else {
+                    (ambulanceCoordinate as any).timing({
+                        latitude: newLoc.latitude,
+                        longitude: newLoc.longitude,
+                        duration: 1000,
+                        useNativeDriver: false
+                    }).start();
+                }
+=======
                 // Smoothly animate to updated location
                 mapRef.current?.animateToRegion({
                     ...newLoc,
@@ -79,6 +118,7 @@ export default function TrackingScreen() {
                 }, 1000);
 
                 setStatus('Tracking live location');
+>>>>>>> 110bde4635d92b6879d87d21a81d24140acb8f48
             }
         });
 
@@ -93,39 +133,88 @@ export default function TrackingScreen() {
         };
     }, [bookingId]);
 
-    // Location Tracking (Self) - Only emit if Driver/Admin. User just watches.
+    const requestLocationPermission = async () => {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        setPermissionStatus(status);
+        return status;
+    };
+
+    // Location Tracking (Self)
     useEffect(() => {
         let subscription: any;
+<<<<<<< HEAD
+
+        const startTracking = async () => {
+            const status = await requestLocationPermission();
+            if (status !== 'granted') return;
+=======
         if (!socket || !connected) return;
 
         (async () => {
             let { status: permissionStatus } = await Location.requestForegroundPermissionsAsync();
             if (permissionStatus !== 'granted') return;
+>>>>>>> 110bde4635d92b6879d87d21a81d24140acb8f48
 
             subscription = await Location.watchPositionAsync(
                 {
                     accuracy: Location.Accuracy.High,
+<<<<<<< HEAD
+                    timeInterval: 2000, // Faster updates (2s)
+                    distanceInterval: 5, // Smaller distance (5m)
+=======
                     timeInterval: 2000, // Faster updates for smoother tracking
                     distanceInterval: 5,
+>>>>>>> 110bde4635d92b6879d87d21a81d24140acb8f48
                 },
                 (loc) => {
                     const { latitude, longitude } = loc.coords;
 
+<<<<<<< HEAD
+                    // Only emit if Admin (or Driver in future)
+                    if (role === 'admin') {
+                        if (socket) {
+                            socket.emit('send_location', {
+                                bookingId,
+                                location: { latitude, longitude }
+                            });
+                        }
+=======
                     // Support for Driver role or Admin to share their location
                     if (role === 'admin' || role === 'driver') {
                         socket.emit('send_location', {
                             bookingId,
                             location: { latitude, longitude }
                         });
+>>>>>>> 110bde4635d92b6879d87d21a81d24140acb8f48
                     }
                 }
             );
-        })();
+        };
+
+        startTracking();
 
         return () => {
             if (subscription) subscription.remove();
         };
     }, [socket, connected, role, bookingId]);
+
+    if (permissionStatus !== 'granted' && permissionStatus !== 'undetermined') {
+        return (
+            <View style={styles.center}>
+                <Ionicons name="location-outline" size={64} color="red" />
+                <Text style={styles.permissionText}>Location Permission Needed</Text>
+                <Text style={styles.permissionSubText}>We need your location to track the ambulance accurately.</Text>
+                <TouchableOpacity style={styles.permissionButton} onPress={requestLocationPermission}>
+                    <Text style={styles.permissionButtonText}>Enable Location</Text>
+                </TouchableOpacity>
+                <View style={styles.footer}>
+                    <TouchableOpacity style={[styles.ackButton, { backgroundColor: '#333' }]} onPress={() => router.back()}>
+                        <Text style={styles.ackButtonText}>Go Back</Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
+        );
+    }
 
     const sendAck = () => {
         if (socket && connected) {
@@ -167,14 +256,21 @@ export default function TrackingScreen() {
             >
                 {/* Ambulance Marker (Remote) */}
                 {remoteLocation && (
+<<<<<<< HEAD
+                    <Marker.Animated
+                        coordinate={ambulanceCoordinate as any}
+                        title="Ambulance"
+                        description={vehicleNumber as string || "Ambulance"}
+=======
                     <Marker
                         coordinate={remoteLocation}
                         anchor={{ x: 0.5, y: 0.5 }}
+>>>>>>> 110bde4635d92b6879d87d21a81d24140acb8f48
                     >
                         <View style={styles.ambulanceMarker}>
                             <MaterialCommunityIcons name="ambulance" size={22} color="white" />
                         </View>
-                    </Marker>
+                    </Marker.Animated>
                 )}
 
                 {/* Pickup Marker */}
@@ -375,6 +471,40 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
+<<<<<<< HEAD
+        borderWidth: 1,
+        borderColor: '#ccc'
+    },
+    center: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20
+    },
+    permissionText: {
+        fontSize: 22,
+        fontWeight: 'bold',
+        marginTop: 20,
+        marginBottom: 10
+    },
+    permissionSubText: {
+        fontSize: 16,
+        color: '#666',
+        textAlign: 'center',
+        marginBottom: 30
+    },
+    permissionButton: {
+        backgroundColor: '#EF4444',
+        paddingHorizontal: 30,
+        paddingVertical: 15,
+        borderRadius: 25
+    },
+    permissionButtonText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: 'bold'
+    }
+=======
         backgroundColor: '#EF4444',
         justifyContent: 'center',
         alignItems: 'center',
@@ -396,4 +526,5 @@ const styles = StyleSheet.create({
         height: 10,
         borderRadius: 5,
     },
+>>>>>>> 110bde4635d92b6879d87d21a81d24140acb8f48
 });

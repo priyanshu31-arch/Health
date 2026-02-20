@@ -20,7 +20,7 @@ app.use(express.json());
 const PORT = process.env.PORT || 5000;
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGO_URI)
+mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/health_app')
   .then(() => console.log('✅ MongoDB connected'))
   .catch(err => {
     console.error('❌ MongoDB Connection Failed:', err.message);
@@ -40,6 +40,7 @@ app.use('/api/health-tips', require('./routes/healthTips'));
 app.use('/api/health-records', require('./routes/healthRecords'));
 app.use('/api/doctors', require('./routes/doctors'));
 app.use('/api/diseases', require('./routes/diseases'));
+app.use('/api/consent', require('./routes/consent'));
 
 // Serve static uploads
 const path = require('path');

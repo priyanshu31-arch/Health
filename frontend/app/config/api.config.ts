@@ -193,6 +193,7 @@ interface BedBookingData {
     patientName: string;
     contactNumber: string;
     isOffline?: boolean;
+    sharedRecords?: string[];
 }
 
 interface AmbulanceBookingData {
@@ -519,9 +520,9 @@ export const api = {
     // ==========================================================================
 
     /**
-     * Upload an image to the server
+     * Upload a file (Image or PDF) to the server
      */
-    uploadImage: async (formData: FormData): Promise<{ url: string }> => {
+    uploadFile: async (formData: FormData): Promise<{ url: string }> => {
         const token = await AsyncStorage.getItem('token');
 
         try {
@@ -550,7 +551,7 @@ export const api = {
             }
             return json;
         } catch (error: any) {
-            console.error('Upload Image Exception:', error);
+            console.error('Upload Exception:', error);
             throw error;
         }
     },
@@ -580,7 +581,82 @@ export const api = {
     },
 
     // ==========================================================================
-    // 🔍 NEW MODULES: DOCTORS, TIPS, RECORDS, DISEASES
+    // 🔐 CONSENT MANAGEMENT
+    // ==========================================================================
+
+    /**
+     * Doctor requests access to a patient
+     */
+    requestAccess: async (patientId: string): Promise<any> => {
+        return fetchApi('/api/consent/request', {
+            method: 'POST',
+            body: JSON.stringify({ patientId }),
+        });
+    },
+
+    /**
+     * Patient gets pending requests
+     */
+    getPendingRequests: async (): Promise<any[]> => {
+        return fetchApi<any[]>('/api/consent/pending');
+    },
+
+    /**
+     * Patient responds to a request
+     */
+    respondToRequest: async (requestId: string, status: 'approved' | 'rejected'): Promise<any> => {
+        return fetchApi(`/api/consent/${requestId}/respond`, {
+            method: 'PUT',
+            body: JSON.stringify({ status }),
+        });
+    },
+
+    /**
+     * Doctor checks access to a patient
+     */
+    checkAccess: async (patientId: string): Promise<{ hasAccess: boolean; consent?: any }> => {
+        return fetchApi<{ hasAccess: boolean; consent?: any }>(`/api/consent/check/${patientId}`);
+    },
+
+    /**
+     * Doctor gets their own requests
+     */
+    getDoctorRequests: async (): Promise<any[]> => {
+        return fetchApi<any[]>('/api/consent/my-requests');
+    },
+
+    // ==========================================================================
+    // 📄 HEALTH RECORDS
+    // ==========================================================================
+
+    /**
+     * Get all health records
+     */
+    getHealthRecords: async (): Promise<any[]> => {
+        return fetchApi<any[]>('/api/health-records');
+    },
+
+    /**
+     * Add a new health record
+     */
+    addHealthRecord: async (record: { type: string; value: string; unit?: string; notes?: string; file?: string; date?: Date }): Promise<any> => {
+        return fetchApi('/api/health-records', {
+            method: 'POST',
+            body: JSON.stringify(record),
+        });
+    },
+
+    /**
+     * Delete a health record
+     */
+    deleteHealthRecord: async (id: string): Promise<any> => {
+        return fetchApi(`/api/health-records/${id}`, {
+            method: 'DELETE',
+        });
+    },
+
+    // ==========================================================================
+    // 🔍 NEW MODULES: DOCTORS, TIPS, DISEASES
     // ==========================================================================
 
     getDoctors: async (params?: { specialty?: string; hospital?: string }): Promise<any[]> => {
@@ -594,10 +670,6 @@ export const api = {
 
     getHealthTips: async (): Promise<any[]> => {
         return fetchApi<any[]>('/api/health-tips', { authenticated: false });
-    },
-
-    getHealthRecords: async (): Promise<any[]> => {
-        return fetchApi<any[]>('/api/health-records');
     },
 
     getDiseases: async (search?: string): Promise<any[]> => {

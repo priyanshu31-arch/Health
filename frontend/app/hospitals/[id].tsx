@@ -83,11 +83,34 @@ export default function HospitalDetailsScreen() {
     const [submitting, setSubmitting] = useState(false);
     const { addNotification } = useNotifications();
 
+    // New State for Record Sharing
+    const [myRecords, setMyRecords] = useState<any[]>([]);
+    const [selectedRecords, setSelectedRecords] = useState<string[]>([]);
+    const [showRecords, setShowRecords] = useState(false);
+
     useEffect(() => {
         if (id) {
             fetchDetails();
+            fetchMyRecords();
         }
     }, [id]);
+
+    const fetchMyRecords = async () => {
+        try {
+            const records = await api.getHealthRecords();
+            setMyRecords(records);
+        } catch (error) {
+            console.log('Failed to fetch records for sharing option');
+        }
+    };
+
+    const toggleRecordSelection = (recordId: string) => {
+        if (selectedRecords.includes(recordId)) {
+            setSelectedRecords(selectedRecords.filter(id => id !== recordId));
+        } else {
+            setSelectedRecords([...selectedRecords, recordId]);
+        }
+    };
 
     const fetchDetails = async (showLoading = true) => {
         try {
@@ -138,7 +161,8 @@ export default function HospitalDetailsScreen() {
                 bookingType: bookingType || 'bed',
                 patientName,
                 contactNumber,
-                bedType: bookingType === 'bed' ? 'Standard' : 'Ambulance'
+                bedType: bookingType === 'bed' ? 'Standard' : 'Ambulance',
+                sharedRecords: selectedRecords
             };
 
             await api.bookBed(bookingData as any);
@@ -357,6 +381,53 @@ export default function HospitalDetailsScreen() {
                                     }}
                                     keyboardType="phone-pad"
                                 />
+
+                                {/* Record Sharing Section */}
+                                <View style={styles.recordSection}>
+                                    <TouchableOpacity
+                                        style={styles.recordHeader}
+                                        onPress={() => setShowRecords(!showRecords)}
+                                    >
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                            <MaterialCommunityIcons name={showRecords ? "chevron-down" : "chevron-right"} size={20} color={COLORS.primary} />
+                                            <ThemedText style={styles.recordTitle}>Share Medical Records (Optional)</ThemedText>
+                                        </View>
+                                        {selectedRecords.length > 0 && (
+                                            <View style={styles.badge}>
+                                                <ThemedText style={styles.badgeText}>{selectedRecords.length} selected</ThemedText>
+                                            </View>
+                                        )}
+                                    </TouchableOpacity>
+
+                                    {showRecords && (
+                                        <View style={styles.recordList}>
+                                            {myRecords.length > 0 ? (
+                                                myRecords.map(record => (
+                                                    <TouchableOpacity
+                                                        key={record._id}
+                                                        style={[
+                                                            styles.recordItem,
+                                                            selectedRecords.includes(record._id) && styles.recordItemActive
+                                                        ]}
+                                                        onPress={() => toggleRecordSelection(record._id)}
+                                                    >
+                                                        <View style={{ flex: 1 }}>
+                                                            <ThemedText style={styles.recordType}>{record.type}</ThemedText>
+                                                            <ThemedText style={styles.recordDate}>
+                                                                {new Date(record.date).toLocaleDateString()} • {record.value} {record.unit}
+                                                            </ThemedText>
+                                                        </View>
+                                                        {selectedRecords.includes(record._id) && (
+                                                            <MaterialCommunityIcons name="check-circle" size={20} color={COLORS.primary} />
+                                                        )}
+                                                    </TouchableOpacity>
+                                                ))
+                                            ) : (
+                                                <ThemedText style={styles.noRecordsText}>No records found. Add records in your profile to share them here.</ThemedText>
+                                            )}
+                                        </View>
+                                    )}
+                                </View>
 
                                 <View style={styles.modalButtons}>
                                     <ThemedButton
@@ -736,4 +807,57 @@ const styles = StyleSheet.create({
         fontSize: 14,
         flex: 1
     },
+    recordSection: {
+        width: '100%',
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        borderRadius: 12,
+        overflow: 'hidden'
+    },
+    recordHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 12,
+        backgroundColor: '#F8FAFC'
+    },
+    recordTitle: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: COLORS.text,
+    },
+    recordList: {
+        maxHeight: 150,
+        padding: 8,
+    },
+    recordItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 10,
+        borderRadius: 8,
+        marginBottom: 4,
+        borderWidth: 1,
+        borderColor: 'transparent'
+    },
+    recordItemActive: {
+        backgroundColor: COLORS.primary + '10',
+        borderColor: COLORS.primary
+    },
+    recordType: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: COLORS.text
+    },
+    recordDate: {
+        fontSize: 12,
+        color: COLORS.textLight
+    },
+    noRecordsText: {
+        fontSize: 12,
+        color: COLORS.textLight,
+        textAlign: 'center',
+        padding: 10,
+        fontStyle: 'italic'
+    }
 });

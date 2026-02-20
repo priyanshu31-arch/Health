@@ -19,7 +19,8 @@ const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: {
         folder: 'health-hub/uploads',
-        allowed_formats: ['jpg', 'png', 'jpeg', 'gif', 'webp'],
+        allowed_formats: ['jpg', 'png', 'jpeg', 'gif', 'webp', 'pdf'],
+        resource_type: 'auto',
         public_id: (req, file) => `file-${Date.now()}-${Math.round(Math.random() * 1E9)}`
     }
 });

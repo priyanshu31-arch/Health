@@ -34,6 +34,12 @@ router.post('/', auth, async (req, res) => {
       return res.status(401).json({ msg: 'Not authorized' });
     }
 
+    // Check if bed number already exists for this hospital
+    const existingBed = await Bed.findOne({ hospital, bedNumber });
+    if (existingBed) {
+      return res.status(400).json({ msg: 'Bed number already exists in this hospital' });
+    }
+
     const newBed = new Bed({
       bedNumber,
       isAvailable,

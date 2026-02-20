@@ -56,6 +56,19 @@ export default function ManageBedsScreen() {
             return;
         }
 
+        // Client-side uniqueness check
+        const normalizedNewBedNumber = newBedNumber.trim().toUpperCase();
+        const bedExists = beds.some(bed => bed.bedNumber.trim().toUpperCase() === normalizedNewBedNumber);
+
+        if (bedExists) {
+            if (Platform.OS === 'web') {
+                alert('A bed with this number already exists in your hospital.');
+            } else {
+                Alert.alert('Duplicate Bed', 'A bed with this number already exists in your hospital.');
+            }
+            return;
+        }
+
         try {
             setSubmitting(true);
             await api.addBed({

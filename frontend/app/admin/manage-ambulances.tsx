@@ -50,6 +50,19 @@ export default function ManageAmbulancesScreen() {
             return;
         }
 
+        // Client-side uniqueness check
+        const normalizedNewAmbNumber = newAmbNumber.trim().toUpperCase();
+        const ambExists = ambulances.some(amb => amb.ambulanceNumber.trim().toUpperCase() === normalizedNewAmbNumber);
+
+        if (ambExists) {
+            if (Platform.OS === 'web') {
+                alert('An ambulance with this number already exists in your hospital.');
+            } else {
+                Alert.alert('Duplicate Ambulance', 'An ambulance with this number already exists in your hospital.');
+            }
+            return;
+        }
+
         try {
             setSubmitting(true);
             await api.addAmbulance({

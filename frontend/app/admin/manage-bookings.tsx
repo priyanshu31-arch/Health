@@ -31,7 +31,34 @@ export default function ManageBookingsScreen() {
         // ... existing fetchData ...
     };
 
-    // ... existing handleDeleteBooking ...
+    const handleDeleteBooking = async (id: string) => {
+        Alert.alert(
+            "Delete Booking",
+            "Are you sure you want to delete this booking?",
+            [
+                {
+                    text: "Cancel",
+                    style: "cancel",
+                },
+                {
+                    text: "Delete",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            setLoading(true);
+                            await api.deleteBooking(id);
+                            setBookings(prev => prev.filter(item => item._id !== id));
+                            Alert.alert('Success', 'Booking deleted successfully');
+                        } catch (error: any) {
+                            Alert.alert('Error', error.message || 'Failed to delete booking');
+                        } finally {
+                            setLoading(false);
+                        }
+                    },
+                },
+            ]
+        );
+    };
 
     const renderItem = ({ item }: { item: any }) => (
         <View style={styles.card}>

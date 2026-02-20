@@ -578,7 +578,7 @@ export const api = {
     getProfile: async (): Promise<AuthResponse['user']> => {
         return fetchApi<AuthResponse['user']>('/api/auth/me');
     },
-<<<<<<< HEAD
+
     // ==========================================================================
     // 🔐 CONSENT MANAGEMENT
     // ==========================================================================
@@ -631,31 +631,10 @@ export const api = {
     /**
      * Get all health records
      */
-=======
-
-    // ==========================================================================
-    // 🔍 NEW MODULES: DOCTORS, TIPS, RECORDS, DISEASES
-    // ==========================================================================
-
-    getDoctors: async (params?: { specialty?: string; hospital?: string }): Promise<any[]> => {
-        let url = '/api/doctors';
-        if (params) {
-            const query = new URLSearchParams(params as any).toString();
-            if (query) url += `?${query}`;
-        }
-        return fetchApi<any[]>(url, { authenticated: false });
-    },
-
-    getHealthTips: async (): Promise<any[]> => {
-        return fetchApi<any[]>('/api/health-tips', { authenticated: false });
-    },
-
->>>>>>> cbf4325b31298dea7ad2135b3aedc40fd391eaa0
     getHealthRecords: async (): Promise<any[]> => {
         return fetchApi<any[]>('/api/health-records');
     },
 
-<<<<<<< HEAD
     /**
      * Add a new health record
      */
@@ -673,12 +652,29 @@ export const api = {
         return fetchApi(`/api/health-records/${id}`, {
             method: 'DELETE',
         });
-=======
+    },
+
+    // ==========================================================================
+    // 🔍 NEW MODULES: DOCTORS, TIPS, DISEASES
+    // ==========================================================================
+
+    getDoctors: async (params?: { specialty?: string; hospital?: string }): Promise<any[]> => {
+        let url = '/api/doctors';
+        if (params) {
+            const query = new URLSearchParams(params as any).toString();
+            if (query) url += `?${query}`;
+        }
+        return fetchApi<any[]>(url, { authenticated: false });
+    },
+
+    getHealthTips: async (): Promise<any[]> => {
+        return fetchApi<any[]>('/api/health-tips', { authenticated: false });
+    },
+
     getDiseases: async (search?: string): Promise<any[]> => {
         let url = '/api/diseases';
         if (search) url += `?search=${encodeURIComponent(search)}`;
         return fetchApi<any[]>(url, { authenticated: false });
->>>>>>> cbf4325b31298dea7ad2135b3aedc40fd391eaa0
     },
 };
 

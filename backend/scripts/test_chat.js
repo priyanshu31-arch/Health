@@ -12,8 +12,8 @@ async function testChat() {
     const genAI = new GoogleGenerativeAI(API_KEY);
 
     try {
-        console.log('Attempting to use gemini-pro model...');
-        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+        console.log('Attempting to use gemini-1.5-flash model...');
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
         const prompt = "Hello, are you working?";
         const result = await model.generateContent(prompt);

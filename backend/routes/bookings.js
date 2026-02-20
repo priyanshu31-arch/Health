@@ -79,6 +79,9 @@ router.post('/', async (req, res) => {
 
     const booking = await newBooking.save();
 
+    // Populate the itemId (Ambulance/Bed) to return full details
+    await booking.populate('itemId');
+
     if (bookingType === 'bed') {
       await Bed.findByIdAndUpdate(itemId, { isAvailable: false });
     } else if (bookingType === 'ambulance') {

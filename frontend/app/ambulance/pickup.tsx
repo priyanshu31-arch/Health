@@ -68,7 +68,7 @@ export default function AmbulancePickupScreen() {
         try {
             const { status } = await Location.requestForegroundPermissionsAsync();
             if (status !== 'granted') {
-                setUserLocation({ lat: 12.9716, lon: 77.5946 });
+                setUserLocation({ lat: 30.7333, lon: 76.7794 });
                 return;
             }
 
@@ -79,7 +79,7 @@ export default function AmbulancePickupScreen() {
             });
         } catch (error) {
             console.error('Error getting location:', error);
-            setUserLocation({ lat: 12.9716, lon: 77.5946 });
+            setUserLocation({ lat: 30.7333, lon: 76.7794 });
         }
     };
 
@@ -117,8 +117,8 @@ export default function AmbulancePickupScreen() {
             return;
         }
 
-        const bookingLat = userLocation?.lat || 12.9716;
-        const bookingLon = userLocation?.lon || 77.5946;
+        const bookingLat = userLocation?.lat || 30.7333;
+        const bookingLon = userLocation?.lon || 76.7794;
 
         try {
             setBookingLoading(true);
@@ -161,6 +161,9 @@ export default function AmbulancePickupScreen() {
     };
 
     const handleTrackNow = () => {
+        console.log('🚑 handleTrackNow Called');
+        console.log('Confirmed Booking:', JSON.stringify(confirmedBooking, null, 2));
+
         setModalVisible(false);
         if (confirmedBooking) {
             // Extract coordinates
@@ -169,6 +172,10 @@ export default function AmbulancePickupScreen() {
             const dropLat = confirmedBooking.hospital?.latitude;
             const dropLon = confirmedBooking.hospital?.longitude;
             const dropAddress = confirmedBooking.hospital?.address || confirmedBooking.hospital?.name;
+
+            // Extract ambulance initial location
+            const ambulanceLat = confirmedBooking.itemId?.currentLocation?.coordinates[1];
+            const ambulanceLon = confirmedBooking.itemId?.currentLocation?.coordinates[0];
 
             router.push({
                 pathname: '/tracking',
@@ -180,7 +187,9 @@ export default function AmbulancePickupScreen() {
                     pickupLon,
                     dropLat,
                     dropLon,
-                    dropAddress
+                    dropAddress,
+                    ambulanceLat,
+                    ambulanceLon
                 }
             });
         }

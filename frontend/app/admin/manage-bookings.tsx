@@ -177,14 +177,14 @@ export default function ManageBookingsScreen() {
                                 <View key={index} style={styles.recordItem}>
                                     <View style={styles.recordHeaderInfo}>
                                         <MaterialCommunityIcons
-                                            name={record.file ? (record.file.endsWith('.pdf') ? "file-pdf-box" : "image") : "file-document-outline"}
+                                            name={record && record.file ? (record.file.endsWith('.pdf') ? "file-pdf-box" : "image") : "file-document-outline"}
                                             size={24}
                                             color={COLORS.primary}
                                         />
                                         <View style={{ flex: 1 }}>
-                                            <ThemedText style={styles.recordType}>{record.type}</ThemedText>
+                                            <ThemedText style={styles.recordType}>{record.type || 'Unknown Record'}</ThemedText>
                                             <ThemedText style={styles.recordDate}>
-                                                {new Date(record.date).toLocaleDateString()} • {record.value} {record.unit}
+                                                {record.date ? new Date(record.date).toLocaleDateString() : 'No Date'} • {record.value} {record.unit}
                                             </ThemedText>
                                         </View>
                                     </View>

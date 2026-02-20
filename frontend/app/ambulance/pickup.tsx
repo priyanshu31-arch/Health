@@ -39,6 +39,11 @@ export default function AmbulancePickupScreen() {
     const [pickupAddress, setPickupAddress] = useState('');
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+    // New State for Record Sharing
+    const [myRecords, setMyRecords] = useState<any[]>([]);
+    const [selectedRecords, setSelectedRecords] = useState<string[]>([]);
+    const [showRecords, setShowRecords] = useState(false);
+
     // Status Modal State (for errors)
     const [statusModalVisible, setStatusModalVisible] = useState(false);
     const [statusModalType, setStatusModalType] = useState<'success' | 'error'>('error');
@@ -56,6 +61,7 @@ export default function AmbulancePickupScreen() {
     useEffect(() => {
         if (hospitalId) {
             fetchAmbulances();
+            fetchMyRecords();
         } else {
             // Fallback or error if arrived here without hospital
             Alert.alert('Error', 'No hospital selected');
@@ -63,6 +69,23 @@ export default function AmbulancePickupScreen() {
         }
         getUserLocation();
     }, [hospitalId]);
+
+    const fetchMyRecords = async () => {
+        try {
+            const records = await api.getHealthRecords();
+            setMyRecords(records);
+        } catch (error) {
+            console.log('Failed to fetch records for sharing option');
+        }
+    };
+
+    const toggleRecordSelection = (recordId: string) => {
+        if (selectedRecords.includes(recordId)) {
+            setSelectedRecords(selectedRecords.filter(id => id !== recordId));
+        } else {
+            setSelectedRecords([...selectedRecords, recordId]);
+        }
+    };
 
     const getUserLocation = async () => {
         try {
@@ -130,7 +153,8 @@ export default function AmbulancePickupScreen() {
                 ambulanceId: selectedAmbulance._id, // Pass specific ambulance ID
                 patientName,
                 contactNumber,
-                pickupAddress
+                pickupAddress,
+                sharedRecords: selectedRecords
             };
 
             const result = await api.bookAmbulance(bookingData);
@@ -638,5 +662,73 @@ const styles = StyleSheet.create({
         color: COLORS.error,
         fontSize: 14,
         flex: 1,
+    },
+    // Record Sharing Styles
+    recordSection: {
+        width: '100%',
+        marginTop: 8,
+        marginBottom: 8,
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        borderRadius: 12,
+        overflow: 'hidden'
+    },
+    recordHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 12,
+        backgroundColor: '#F8FAFC'
+    },
+    recordTitle: {
+        fontSize: 14,
+        fontFamily: FONTS.medium,
+        color: COLORS.text
+    },
+    badge: {
+        backgroundColor: COLORS.primary + '20',
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 8
+    },
+    badgeText: {
+        color: COLORS.primary,
+        fontSize: 10,
+        fontWeight: '600'
+    },
+    recordList: {
+        padding: 8,
+        gap: 8,
+        maxHeight: 200
+    },
+    recordItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 10,
+        backgroundColor: COLORS.white,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        gap: 8
+    },
+    recordItemActive: {
+        borderColor: COLORS.primary,
+        backgroundColor: COLORS.primary + '05'
+    },
+    recordType: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: COLORS.text
+    },
+    recordDate: {
+        fontSize: 12,
+        color: COLORS.textLight
+    },
+    noRecordsText: {
+        textAlign: 'center',
+        color: COLORS.textLight,
+        fontSize: 12,
+        padding: 12,
+        fontStyle: 'italic'
     }
 });

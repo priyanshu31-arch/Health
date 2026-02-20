@@ -203,6 +203,7 @@ interface AmbulanceBookingData {
     patientName?: string;
     contactNumber?: string;
     pickupAddress?: string;
+    sharedRecords?: string[];
 }
 
 interface Hospital {

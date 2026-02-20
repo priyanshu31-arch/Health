@@ -27,12 +27,12 @@ const hospitalImages = [
   require('@/assets/images/h5.png'),
 ];
 
-// Fallback dummy doctors
+// Fallback dummy doctors with high quality locally available images
 const fallbackDoctors = [
   {
     id: 'd1',
     name: 'Dr. Sarah Jenkin',
-    specialization: 'Cardiologist',
+    specialization: 'Senior Cardiologist',
     rating: 4.9,
     image: require('@/assets/images/doctor_f1.png'),
   },
@@ -46,10 +46,17 @@ const fallbackDoctors = [
   {
     id: 'd3',
     name: 'Dr. Srivathsavi Mallik',
-    specialization: 'Orthopedic surgeon',
+    specialization: 'Orthopedic Surgeon',
     rating: 4.7,
     image: require('@/assets/images/doctor_m2.png'),
   },
+];
+
+const doctorImages = [
+  require('@/assets/images/doctor_f1.png'),
+  require('@/assets/images/doctor_m1.png'),
+  require('@/assets/images/doctor_m2.png'),
+  require('@/assets/images/doctor_f2.png'),
 ];
 
 interface Hospital {
@@ -156,10 +163,16 @@ export default function HomeScreen() {
       { _id: '2', name: 'ARC Max Hospital', location: 'Springfield, IL', rating: 4.9, image: hospitalImages[1] },
     ]).filter(h => h.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
-  const displayDoctors = (doctors.length > 0 ? doctors : fallbackDoctors).filter(d =>
-    (d.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (d.specialization || d.specialty || '').toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const displayDoctors = (doctors.length > 0
+    ? doctors.map((d, index) => ({
+      ...d,
+      id: d._id || d.id,
+      image: d.image || doctorImages[index % doctorImages.length]
+    }))
+    : fallbackDoctors).filter(d =>
+      (d.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (d.specialization || d.specialty || '').toLowerCase().includes(searchQuery.toLowerCase())
+    ).slice(0, 3);
 
   const handlePressAction = (path: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);

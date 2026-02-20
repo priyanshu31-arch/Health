@@ -97,12 +97,43 @@ router.post('/', async (req, res) => {
 
 // @route   DELETE /bookings/:id
 // @desc    Delete a booking
-// @access  Private (should be, but keeping public/auth consistent with others for MVP)
-router.delete('/:id', async (req, res) => {
+// @access  Private
+// @route   DELETE /bookings/:id
+// @desc    Delete a booking
+// @access  Private
+router.delete('/:id', auth, async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id);
     if (!booking) {
       return res.status(404).json({ msg: 'Booking not found' });
+    }
+
+    let isAuthorized = false;
+
+    // 1. Check if user is the one who booked (if user exists)
+    if (booking.user && booking.user.toString() === req.user.id) {
+      isAuthorized = true;
+    }
+
+    // 2. Check if user is the admin of the hospital for this booking
+    if (!isAuthorized) {
+      // Use the Hospital model import properly
+      // Note: You might need to require it if not global, but typically models are required at top
+      const Hospital = require('../models/Hospital');
+      const hospital = await Hospital.findById(booking.hospital);
+
+      if (hospital && hospital.user.toString() === req.user.id) {
+        isAuthorized = true;
+      }
+    }
+
+    if (!isAuthorized) {
+      console.log('Unauthorized deletion attempt:', {
+        userId: req.user.id,
+        bookingUser: booking.user,
+        bookingHospital: booking.hospital
+      });
+      return res.status(401).json({ msg: 'Not authorized to delete this booking' });
     }
 
     // Release the resource
@@ -120,7 +151,7 @@ router.delete('/:id', async (req, res) => {
 
     res.json({ msg: 'Booking removed' });
   } catch (err) {
-    console.error(err.message);
+    console.error("Error deleting booking:", err);
     res.status(500).send('Server Error');
   }
 });

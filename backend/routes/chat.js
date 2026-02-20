@@ -20,7 +20,7 @@ router.post('/', async (req, res) => {
         console.log('🔑 Using API Key:', API_KEY ? 'Yes (Hidden)' : 'No (Missing)');
 
         // For better health context
-        const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
         const contextPrompt = `
       You are HealthHive AI, a helpful and empathetic medical assistant. 

@@ -75,8 +75,8 @@ function RecenterMap({ lat, lon }: { lat: number; lon: number }) {
 }
 
 interface MapProps {
-    lat: number;
-    lon: number;
+    lat?: number;
+    lon?: number;
     vehicleNumber?: string;
     status: string;
     pickupLat?: number;
@@ -86,32 +86,38 @@ interface MapProps {
     dropAddress?: string;
 }
 
-// Function to calculate distance (simple approximation)
-const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-    const R = 6371e3; // metres
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-        Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-};
-
-export default function LeafletMapComponent({
+export default function LeafletMap({
     lat, lon, vehicleNumber, status,
     pickupLat, pickupLon, dropLat, dropLon, dropAddress
 }: MapProps) {
     const [routePositions, setRoutePositions] = useState<[number, number][]>([]);
     const lastFetchPos = useRef<{ lat: number; lon: number } | null>(null);
 
+    // Determine Map Center: Priority -> Ambulance -> Pickup -> Drop -> Default
+    const centerLat = lat || pickupLat || dropLat || 20.5937;
+    const centerLon = lon || pickupLon || dropLon || 78.9629;
+
+    // Function to calculate distance (simple approximation)
+    const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+        const R = 6371e3; // metres
+        const φ1 = lat1 * Math.PI / 180;
+        const φ2 = lat2 * Math.PI / 180;
+        const Δφ = (lat2 - lat1) * Math.PI / 180;
+        const Δλ = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    };
+
     useEffect(() => {
-        if (!pickupLat || !pickupLon) return;
+        if (!pickupLat || !pickupLon || !lat || !lon) return;
 
         // Threshold of 150m prevents route flickering but stays close enough
         if (lastFetchPos.current) {
             const dist = getDistance(lat, lon, lastFetchPos.current.lat, lastFetchPos.current.lon);
-            if (dist < 150) return;
+            if (dist < 100) return; // Skip if moved less than 100 meters
         }
 
         const fetchRoute = async () => {
@@ -143,18 +149,16 @@ export default function LeafletMapComponent({
     }, [lat, lon, pickupLat, pickupLon, dropLat, dropLon]);
 
     // Create a smooth combined path from current location to the OSRM route
-    const livePath: [number, number][] = routePositions.length > 0
+    const livePath: [number, number][] = (routePositions.length > 0 && lat && lon)
         ? [[lat, lon], ...routePositions]
         : [];
 
     return (
         <MapContainer
-            {...{
-                center: [lat, lon],
-                zoom: 15,
-                style: { width: '100%', height: '100%', minHeight: '400px' },
-                zoomControl: false
-            } as any}
+            center={[centerLat, centerLon]}
+            zoom={15} // Slightly closer zoom for tracking
+            style={{ width: '100%', height: '100%' }}
+            zoomControl={false}
         >
             <TileLayer
                 attribution='&copy; OpenStreetMap'
@@ -176,14 +180,14 @@ export default function LeafletMapComponent({
             ) : null}
 
             {/* Ambulance Marker */}
-            <Marker position={[lat, lon]} icon={ambulanceIcon}>
-                <Popup>
-                    <div style={{ padding: '4px' }}>
-                        <b style={{ color: '#EF4444', fontSize: '14px' }}>Ambulance {vehicleNumber || ''}</b>
-                        <div style={{ marginTop: '4px', color: '#64748B' }}>{status}</div>
-                    </div>
-                </Popup>
-            </Marker>
+            {lat && lon && (
+                <Marker position={[lat, lon]} icon={ambulanceIcon}>
+                    <Popup>
+                        <b>Ambulance {vehicleNumber || ''}</b> <br />
+                        {status}
+                    </Popup>
+                </Marker>
+            )}
 
             {/* Destination Marker */}
             {dropLat && dropLon ? (
@@ -203,7 +207,7 @@ export default function LeafletMapComponent({
                 </Marker>
             ) : null}
 
-            <RecenterMap lat={lat} lon={lon} />
+            <RecenterMap lat={centerLat} lon={centerLon} />
         </MapContainer>
     );
 }

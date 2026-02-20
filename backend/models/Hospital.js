@@ -24,15 +24,15 @@ const HospitalSchema = new mongoose.Schema({
   },
   address: {
     type: String,
-    default: 'Bangalore, India',
+    default: 'Chandigarh, India',
   },
   latitude: {
     type: Number,
-    default: 12.9716, // Bangalore default
+    default: 30.7333, // Chandigarh default
   },
   longitude: {
     type: Number,
-    default: 77.5946,
+    default: 76.7794,
   },
 });
 

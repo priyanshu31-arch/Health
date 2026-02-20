@@ -15,12 +15,13 @@ const LeafletMap = lazy(() => import('./LeafletMap'));
 export default function TrackingScreenWeb() {
     const {
         bookingId, role, patientName, vehicleNumber,
-        pickupLat, pickupLon, dropLat, dropLon, dropAddress
+        pickupLat, pickupLon, dropLat, dropLon, dropAddress,
+        ambulanceLat, ambulanceLon
     } = useLocalSearchParams();
     const router = useRouter();
 
     // State
-    const [status, setStatus] = useState('Connecting to ambulance...');
+    const [status, setStatus] = useState(ambulanceLat ? 'Ambulance Found' : 'Live Tracking');
     const [remoteLocation, setRemoteLocation] = useState<any>(null);
     const [socket, setSocket] = useState<any>(null);
     const [connected, setConnected] = useState(false);
@@ -40,7 +41,10 @@ export default function TrackingScreenWeb() {
             console.log('Socket Connected');
             setConnected(true);
             newSocket.emit('join_booking', bookingId);
-            setStatus('Waiting for ambulance location...');
+            if (!ambulanceLat && !remoteLocation) {
+                // setStatus('Waiting for ambulance location...'); // User requested hiding this message
+                setStatus('Live Tracking');
+            }
         });
 
         newSocket.on('disconnect', () => {
@@ -56,7 +60,7 @@ export default function TrackingScreenWeb() {
                     latitude: parseFloat(loc.latitude || loc.lat),
                     longitude: parseFloat(loc.longitude || loc.lng)
                 });
-                setStatus('Tracking live location');
+                setStatus('Ambulance Found');
             }
         });
 
@@ -70,9 +74,9 @@ export default function TrackingScreenWeb() {
         };
     }, [bookingId]);
 
-    // Fallback location (Bangalore) if no signal yet
-    const displayLat = remoteLocation?.latitude || 12.9716;
-    const displayLon = remoteLocation?.longitude || 77.5946;
+    // Locations
+    const ambLat = remoteLocation?.latitude || (ambulanceLat ? parseFloat(ambulanceLat as string) : undefined);
+    const ambLon = remoteLocation?.longitude || (ambulanceLon ? parseFloat(ambulanceLon as string) : undefined);
 
     // Parse params
     const pLat = pickupLat ? parseFloat(pickupLat as string) : undefined;
@@ -100,12 +104,12 @@ export default function TrackingScreenWeb() {
             </View>
 
             <View style={styles.mapContainer}>
-                {/* Only render Map on Client */}
-                {isClient && (
+                {/* Only render Map on Client and if we have at least ONE location */}
+                {isClient && (ambLat || pLat) ? (
                     <Suspense fallback={<View style={styles.center}><ActivityIndicator size="large" color={COLORS.primary} /></View>}>
                         <LeafletMap
-                            lat={displayLat}
-                            lon={displayLon}
+                            lat={ambLat}
+                            lon={ambLon}
                             vehicleNumber={vehicleNumber as string}
                             status={status}
                             pickupLat={pLat}
@@ -115,6 +119,11 @@ export default function TrackingScreenWeb() {
                             dropAddress={dropAddress as string}
                         />
                     </Suspense>
+                ) : (
+                    <View style={styles.center}>
+                        <ActivityIndicator size="large" color={COLORS.primary} />
+                        <ThemedText style={{ marginTop: 10 }}>Getting Location...</ThemedText>
+                    </View>
                 )}
             </View>
 

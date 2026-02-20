@@ -79,7 +79,6 @@ export default function ManageBookingsScreen() {
 
     const renderItem = ({ item }: { item: any }) => (
         <View style={styles.card}>
-            {/* ... existing card content ... */}
             <View style={styles.cardContent}>
                 <View style={[styles.iconBox, { backgroundColor: item.bookingType === 'bed' ? COLORS.primary + '15' : COLORS.secondary + '15' }]}>
                     <MaterialCommunityIcons
@@ -95,6 +94,7 @@ export default function ManageBookingsScreen() {
                         {new Date(item.bookedAt).toLocaleDateString()} • {item.bookingType.toUpperCase()}
                     </ThemedText>
                     {item.hospital && <ThemedText style={styles.hospitalText}>{item.hospital.name}</ThemedText>}
+
                     {item.bookingType === 'ambulance' && (
                         <TouchableOpacity
                             style={styles.trackBtn}
@@ -111,30 +111,36 @@ export default function ManageBookingsScreen() {
                         </TouchableOpacity>
                     )}
                 </View>
-                <TouchableOpacity onPress={() => handleDeleteBooking(item._id)}>
-                    <MaterialCommunityIcons name="delete" size={24} color={COLORS.error} />
+
+                <TouchableOpacity
+                    style={styles.deleteBtn}
+                    onPress={() => handleDeleteBooking(item._id)}
+                >
+                    <MaterialCommunityIcons name="delete-outline" size={24} color={COLORS.error} />
                 </TouchableOpacity>
             </View>
 
-            {item.sharedRecords && item.sharedRecords.length > 0 && (
-                <TouchableOpacity
-                    style={styles.recordsBtn}
-                    onPress={() => setSelectedRecords(item.sharedRecords)}
-                >
-                    <MaterialCommunityIcons name="file-document-multiple" size={20} color={COLORS.primary} />
-                    <ThemedText style={styles.recordsText}>{item.sharedRecords.length} Records Shared</ThemedText>
-                </TouchableOpacity>
-            )}
+            <View style={styles.cardFooter}>
+                {item.sharedRecords && item.sharedRecords.length > 0 && (
+                    <TouchableOpacity
+                        style={styles.recordsBtn}
+                        onPress={() => setSelectedRecords(item.sharedRecords)}
+                    >
+                        <MaterialCommunityIcons name="file-document-multiple" size={20} color={COLORS.primary} />
+                        <ThemedText style={styles.recordsText}>{item.sharedRecords.length} Records Shared</ThemedText>
+                    </TouchableOpacity>
+                )}
 
-            {(!item.sharedRecords || item.sharedRecords.length === 0) && (item.userId || item.patientId) && (
-                <TouchableOpacity
-                    style={[styles.recordsBtn, { backgroundColor: COLORS.secondary + '15', marginTop: 8 }]}
-                    onPress={() => handleRequestAccess(item.userId || item.patientId)}
-                >
-                    <MaterialCommunityIcons name="account-lock-open" size={20} color={COLORS.secondary} />
-                    <ThemedText style={[styles.recordsText, { color: COLORS.secondary }]}>Request Medical Access</ThemedText>
-                </TouchableOpacity>
-            )}
+                {(!item.sharedRecords || item.sharedRecords.length === 0) && (item.userId || item.patientId) && (
+                    <TouchableOpacity
+                        style={[styles.recordsBtn, { backgroundColor: COLORS.secondary + '15' }]}
+                        onPress={() => handleRequestAccess(item.userId || item.patientId)}
+                    >
+                        <MaterialCommunityIcons name="account-lock-open" size={20} color={COLORS.secondary} />
+                        <ThemedText style={[styles.recordsText, { color: COLORS.secondary }]}>Request Medical Access</ThemedText>
+                    </TouchableOpacity>
+                )}
+            </View>
         </View>
     );
 
@@ -370,5 +376,21 @@ const styles = StyleSheet.create({
         color: COLORS.white,
         fontWeight: '500',
         fontSize: 14
-    }
+    },
+    deleteBtn: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: COLORS.error + '10',
+    },
+    cardFooter: {
+        flexDirection: 'row',
+        marginTop: 12,
+        paddingTop: 12,
+        borderTopWidth: 1,
+        borderTopColor: '#F1F5F9',
+        gap: 8,
+    },
 });

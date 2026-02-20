@@ -42,6 +42,11 @@ export default function HospitalEnquiryScreen() {
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [bookedInfo, setBookedInfo] = useState<{ bed: string; patient: string; contact: string } | null>(null);
 
+    // New State for Record Sharing
+    const [myRecords, setMyRecords] = useState<any[]>([]);
+    const [selectedRecords, setSelectedRecords] = useState<string[]>([]);
+    const [showRecords, setShowRecords] = useState(false);
+
     useEffect(() => {
         if (user?.phone) {
             setContactNumber(user.phone);
@@ -54,8 +59,26 @@ export default function HospitalEnquiryScreen() {
     useEffect(() => {
         if (hospitalId) {
             fetchBeds();
+            fetchMyRecords();
         }
     }, [hospitalId]);
+
+    const fetchMyRecords = async () => {
+        try {
+            const records = await api.getHealthRecords();
+            setMyRecords(records);
+        } catch (error) {
+            console.log('Failed to fetch records for sharing option');
+        }
+    };
+
+    const toggleRecordSelection = (recordId: string) => {
+        if (selectedRecords.includes(recordId)) {
+            setSelectedRecords(selectedRecords.filter(id => id !== recordId));
+        } else {
+            setSelectedRecords([...selectedRecords, recordId]);
+        }
+    };
 
     const fetchBeds = async () => {
         try {
@@ -117,7 +140,8 @@ export default function HospitalEnquiryScreen() {
                 itemId: selectedBed,
                 hospital: hospitalId as string,
                 patientName,
-                contactNumber
+                contactNumber,
+                sharedRecords: selectedRecords
             });
 
             // Trigger notification
@@ -247,6 +271,53 @@ export default function HospitalEnquiryScreen() {
                     placeholderTextColor={COLORS.textLight}
                     keyboardType="phone-pad"
                 />
+
+                {/* Record Sharing Section */}
+                <View style={styles.recordSection}>
+                    <TouchableOpacity
+                        style={styles.recordHeader}
+                        onPress={() => setShowRecords(!showRecords)}
+                    >
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            <MaterialCommunityIcons name={showRecords ? "chevron-down" : "chevron-right"} size={20} color={COLORS.primary} />
+                            <ThemedText style={styles.recordTitle}>Share Medical Records (Optional)</ThemedText>
+                        </View>
+                        {selectedRecords.length > 0 && (
+                            <View style={styles.badge}>
+                                <ThemedText style={styles.badgeText}>{selectedRecords.length} selected</ThemedText>
+                            </View>
+                        )}
+                    </TouchableOpacity>
+
+                    {showRecords && (
+                        <View style={styles.recordList}>
+                            {myRecords.length > 0 ? (
+                                myRecords.map(record => (
+                                    <TouchableOpacity
+                                        key={record._id}
+                                        style={[
+                                            styles.recordItem,
+                                            selectedRecords.includes(record._id) && styles.recordItemActive
+                                        ]}
+                                        onPress={() => toggleRecordSelection(record._id)}
+                                    >
+                                        <View style={{ flex: 1 }}>
+                                            <ThemedText style={styles.recordType}>{record.type}</ThemedText>
+                                            <ThemedText style={styles.recordDate}>
+                                                {new Date(record.date).toLocaleDateString()} • {record.value} {record.unit}
+                                            </ThemedText>
+                                        </View>
+                                        {selectedRecords.includes(record._id) && (
+                                            <MaterialCommunityIcons name="check-circle" size={20} color={COLORS.primary} />
+                                        )}
+                                    </TouchableOpacity>
+                                ))
+                            ) : (
+                                <ThemedText style={styles.noRecordsText}>No records found. Add records in your profile to share them here.</ThemedText>
+                            )}
+                        </View>
+                    )}
+                </View>
             </View>
 
             <View style={styles.footer}>
@@ -469,6 +540,72 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         padding: 20,
+    },
+    recordSection: {
+        marginTop: 8,
+        backgroundColor: COLORS.background,
+        borderRadius: 12,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+    },
+    recordHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 16,
+        backgroundColor: COLORS.white,
+    },
+    recordTitle: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: COLORS.text,
+    },
+    badge: {
+        backgroundColor: COLORS.primary + '20',
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 10,
+    },
+    badgeText: {
+        color: COLORS.primary,
+        fontSize: 12,
+        fontWeight: '600',
+    },
+    recordList: {
+        padding: 12,
+        gap: 8,
+    },
+    recordItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: 12,
+        backgroundColor: COLORS.white,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+    },
+    recordItemActive: {
+        borderColor: COLORS.primary,
+        backgroundColor: COLORS.primary + '05',
+    },
+    recordType: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: COLORS.text,
+    },
+    recordDate: {
+        fontSize: 12,
+        color: COLORS.textLight,
+        marginTop: 2,
+    },
+    noRecordsText: {
+        fontSize: 14,
+        color: COLORS.textLight,
+        textAlign: 'center',
+        padding: 16,
+        fontStyle: 'italic',
     },
     modalContent: {
         backgroundColor: COLORS.white,

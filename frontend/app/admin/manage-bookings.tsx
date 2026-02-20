@@ -28,10 +28,54 @@ export default function ManageBookingsScreen() {
     }, []);
 
     const fetchData = async () => {
-        // ... existing fetchData ...
+        try {
+            setLoading(true);
+            const data = await api.getAllBookings();
+            setBookings(data);
+        } catch (error: any) {
+            Alert.alert('Error', error.message || 'Failed to fetch bookings');
+        } finally {
+            setLoading(false);
+        }
     };
 
-    // ... existing handleDeleteBooking ...
+    const handleRequestAccess = async (patientId: string) => {
+        try {
+            await api.requestAccess(patientId);
+            Alert.alert('Success', 'Access request sent successfully');
+        } catch (error: any) {
+            Alert.alert('Error', error.message || 'Failed to send request');
+        }
+    };
+
+    const handleDeleteBooking = async (id: string) => {
+        Alert.alert(
+            "Delete Booking",
+            "Are you sure you want to delete this booking?",
+            [
+                {
+                    text: "Cancel",
+                    style: "cancel",
+                },
+                {
+                    text: "Delete",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            setLoading(true);
+                            await api.deleteBooking(id);
+                            setBookings(prev => prev.filter(item => item._id !== id));
+                            Alert.alert('Success', 'Booking deleted successfully');
+                        } catch (error: any) {
+                            Alert.alert('Error', error.message || 'Failed to delete booking');
+                        } finally {
+                            setLoading(false);
+                        }
+                    },
+                },
+            ]
+        );
+    };
 
     const renderItem = ({ item }: { item: any }) => (
         <View style={styles.card}>
@@ -79,6 +123,16 @@ export default function ManageBookingsScreen() {
                 >
                     <MaterialCommunityIcons name="file-document-multiple" size={20} color={COLORS.primary} />
                     <ThemedText style={styles.recordsText}>{item.sharedRecords.length} Records Shared</ThemedText>
+                </TouchableOpacity>
+            )}
+
+            {(!item.sharedRecords || item.sharedRecords.length === 0) && (item.userId || item.patientId) && (
+                <TouchableOpacity
+                    style={[styles.recordsBtn, { backgroundColor: COLORS.secondary + '15', marginTop: 8 }]}
+                    onPress={() => handleRequestAccess(item.userId || item.patientId)}
+                >
+                    <MaterialCommunityIcons name="account-lock-open" size={20} color={COLORS.secondary} />
+                    <ThemedText style={[styles.recordsText, { color: COLORS.secondary }]}>Request Medical Access</ThemedText>
                 </TouchableOpacity>
             )}
         </View>
